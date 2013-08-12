@@ -2,8 +2,8 @@
 #if !defined( __MODEL_HPP__ )
 #define __MODEL_HPP__
 
-#include <lcmtypes/math_core.hpp>
-#include <lcmtypes/probability_core.hpp>
+#include <lcmtypes/p2l_math_core.hpp>
+#include <lcmtypes/p2l_probability_core.hpp>
 #include <iosfwd>
 #include <string>
 

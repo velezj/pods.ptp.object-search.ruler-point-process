@@ -1,20 +1,27 @@
 
-add_executable( ruler-point-process-test-likelihood-montecarlo
+add_executable( p2l-ruler-point-process-test-likelihood-montecarlo
   test-likelihood-montecarlo.cpp )
-pods_use_pkg_config_packages( ruler-point-process-test-likelihood-montecarlo math-core point-process-core probability-core ruler-point-process lcmtypes_math-core lcmtypes_point-process-core lcmtypes_probability-core lcmtypes_igmm-point-process )
-pods_install_executables( ruler-point-process-test-likelihood-montecarlo )
+pods_use_pkg_config_packages( p2l-ruler-point-process-test-likelihood-montecarlo
+    p2l-math-core 
+    p2l-point-process-core 
+    p2l-probability-core 
+    p2l-ruler-point-process 
+    lcmtypes_p2l-math-core 
+    lcmtypes_p2l-probability-core 
+    lcmtypes_p2l-igmm-point-process )
+pods_install_executables( p2l-ruler-point-process-test-likelihood-montecarlo )
 
 
-add_executable( ruler-point-process-test-mcmc
+add_executable( p2l-ruler-point-process-test-mcmc
   test-mcmc.cpp
 )
-pods_use_pkg_config_packages( ruler-point-process-test-mcmc
-  math-core lcmtypes_math-core
-  probability-core lcmtypes_probability-core
-  point-process-core lcmtypes_point-process-core
-  point-process-experiment-core
-  ruler-point-process lcmtypes_ruler-point-process
+pods_use_pkg_config_packages( p2l-ruler-point-process-test-mcmc
+  p2l-math-core lcmtypes_p2l-math-core
+  p2l-probability-core lcmtypes_p2l-probability-core
+  p2l-point-process-core
+  p2l-point-process-experiment-core
+  p2l-ruler-point-process
 )
-pods_install_executables( ruler-point-process-test-mcmc )
+pods_install_executables( p2l-ruler-point-process-test-mcmc )
 
   

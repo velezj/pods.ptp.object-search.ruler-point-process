@@ -114,7 +114,7 @@ namespace ruler_point_process {
       
       // take care of the negative regions by computing the mass which
       // lies inside and taking that out
-      for( int i = 0; i < params->negative_observations.size(); ++i ) {
+      for( size_t i = 0; i < params->negative_observations.size(); ++i ) {
 
 	// need to shift region to be from the tick's point of view
 	nd_aabox_t reg = params->negative_observations[i];
@@ -202,22 +202,18 @@ namespace ruler_point_process {
     double period_sigma = sqrt(variance(period_distribution));
     double length_sigma = sqrt(variance(ruler_length_distribution));
     ranges_low[ period_slot ] = mean(period_distribution) - sigma_range * period_sigma;
-    ranges_low[ period_slot ];
     if( ranges_low[ period_slot ] < 1e-5 ) {
       ranges_low[ period_slot ] = 1e-5;
     }
     ranges_high[ period_slot ] = mean(period_distribution) + sigma_range * period_sigma;
-    ranges_high[ period_slot ];
     if( ranges_high[ period_slot ] > 1e5 ) {
       ranges_high[ period_slot ] = std::max( ranges_low[period_slot], 1e5 );
     }
     ranges_low[ length_slot ] = mean(ruler_length_distribution) - sigma_range * length_sigma;
-    ranges_low[ length_slot ];
     if( ranges_low[ length_slot ] < 1e-5 ) {
       ranges_low[ length_slot ] = 1e-5;
     }
     ranges_high[ length_slot ] = mean(ruler_length_distribution) + sigma_range * length_sigma;
-    ranges_high[ length_slot ];
     if( ranges_high[ length_slot ] > 1e5 ) {
       ranges_high[ length_slot ] = std::max( ranges_low[length_slot], 1e5 );
     }
@@ -779,14 +775,14 @@ namespace ruler_point_process {
     if( dim == 2 ) {
       points = points_arg;
     } else if( dim == 1 ) {
-      for( int i = 0; i < points_arg.size(); ++i ) {
+      for( size_t i = 0; i < points_arg.size(); ++i ) {
 	points.push_back( point( points_arg[i].coordinate[0], 0 ) );
       }
     }
 
     // get raw ppints
     double* raw = new double[ points.size() * 2 ];
-    for( int i = 0; i < points.size(); ++i ) {
+    for( size_t i = 0; i < points.size(); ++i ) {
       raw[ 2*i ] = points[i].coordinate[0];
       raw[ 2*i + 1 ] = points[i].coordinate[1];
     }
@@ -797,6 +793,11 @@ namespace ruler_point_process {
     double residual_sum_sq;
     int err = gsl_fit_linear( raw, 2, raw+1, 2, points.size(), &b, &m, &c00, &c01, &c11, &residual_sum_sq);
 
+    // throw exception upong error
+    if( err ) {
+      throw std::runtime_error( "Error fitting linear regresion line to points using gsl_fit_linear" );
+    }
+    
     // free resources
     delete[] raw;
  
@@ -852,6 +853,10 @@ namespace ruler_point_process {
 			     double& period,
 			     double& length)
   {
+
+    if( points.empty() ) {
+      throw std::domain_error( "Unable to compute period and length from 0 points!" );
+    }
     
     // special case of 1 point
     if( points.size() == 1 ) {
@@ -868,7 +873,7 @@ namespace ruler_point_process {
     
     // OK, now compute the mean difference
     std::vector<double> diffs;
-    for( int i = 0; i < sorted_points.size() -1 ; ++i ) {
+    for( size_t i = 0; i < sorted_points.size() -1 ; ++i ) {
       diffs.push_back( distance( sorted_points[i], sorted_points[i+1] ) );
     }
     
@@ -930,7 +935,7 @@ namespace ruler_point_process {
   				  double num_mix,
   				  double num_ob )
       : alpha(a),
-  	num_mixtures( num_mixtures ),
+  	num_mixtures( num_mix ),
   	num_obs( num_ob )
     {}
     
@@ -1259,7 +1264,7 @@ namespace ruler_point_process {
       case 's':
 	high = num_samples + low;
 	break;
-      defualt:
+      default:
 	throw std::domain_error( "Unknown gamma conjugate prior parameter!" );
       }
     }
@@ -1419,7 +1424,7 @@ namespace ruler_point_process {
     // mixtures in the state
     gamma_conjugate_prior_t posterior
       = state.model.period_distribution;
-    for( int i = 0; i < state.mixture_period_gammas.size(); ++i ) {
+    for( size_t i = 0; i < state.mixture_period_gammas.size(); ++i ) {
       
       // calculate the actual length of this mixture
       std::vector<nd_point_t> points = points_for_mixture( state, i );
@@ -1579,10 +1584,10 @@ namespace ruler_point_process {
       // calculate a new posterior by sampling a point from every mixture 
       // gamma and updating hte prior
       // Hack: we are just going to use the mean from the gammas
-      double mean_x = 0;
+      //double mean_x = 0;
       gamma_conjugate_prior_t posterior
 	= state.model.ruler_length_distribution;
-      for( int i = 0; i < state.mixture_ruler_length_gammas.size(); ++i ) {
+      for( size_t i = 0; i < state.mixture_ruler_length_gammas.size(); ++i ) {
 	// mean_x += mean( state.mixture_ruler_length_gammas[i] );
 	// double x = sample_from( state.mixture_ruler_length_gammas[i] );
 
@@ -1617,7 +1622,7 @@ namespace ruler_point_process {
       // calculate the likelihood of all the gammas in mixture
       // independently
       double lik = 1;
-      for( int i = 0 ; i < state.mixture_ruler_length_gammas.size(); ++i ) {
+      for( size_t i = 0 ; i < state.mixture_ruler_length_gammas.size(); ++i ) {
 	lik *= likelihood( state.mixture_ruler_length_gammas[i], posterior );
       }
       posterior_liks.push_back( lik );
@@ -1778,7 +1783,7 @@ namespace ruler_point_process {
     //oss << state.trace_mcmc_dir << "/" << "mcmc.trace";
     std::string filename = oss.str();
     boost::filesystem::create_directories( boost::filesystem::path( filename ).parent_path() );
-    std::ofstream fout_trace( filename, std::ios_base::app | std::ios_base::out );
+    std::ofstream fout_trace( filename.c_str(), std::ios_base::app | std::ios_base::out );
     fout_trace 
       << state.iteration << " "
       << state.model.alpha << " "
@@ -1812,11 +1817,11 @@ namespace ruler_point_process {
       << state.model.ruler_direction_precision_distribution.shape << " "
       << state.model.ruler_direction_precision_distribution.rate << " "
       << state.observations.size() << " ";
-    for( int i = 0; i < state.observation_to_mixture.size(); ++i ) {
+    for( size_t i = 0; i < state.observation_to_mixture.size(); ++i ) {
       fout_trace << state.observation_to_mixture[i] << " ";
     }
     fout_trace << state.mixture_gaussians.size() << " ";
-    for( int i = 0; i < state.mixture_gaussians.size(); ++i ) {
+    for( size_t i = 0; i < state.mixture_gaussians.size(); ++i ) {
       fout_trace << state.mixture_gaussians[i].means[0] << " "
 		 << state.mixture_gaussians[i].covariance.data[0] << " "
 		 << state.mixture_period_gammas[i].shape << " " 

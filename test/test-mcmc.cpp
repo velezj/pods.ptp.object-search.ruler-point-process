@@ -30,8 +30,8 @@ int main( int argc, char** argv )
   oss_trace << dir << "/" << "mcmc_trace.data";
   std::ostringstream oss_meta;
   oss_meta << dir << "/" << "experiment.meta";
-  std::ofstream fout_trace( oss_trace.str() );
-  std::ofstream fout_meta( oss_meta.str() );
+  std::ofstream fout_trace( oss_trace.str().c_str() );
+  std::ofstream fout_meta( oss_meta.str().c_str() );
 
   // create a set of poitns (1d)
   size_t dim = 1; 
@@ -147,7 +147,7 @@ int main( int argc, char** argv )
   process->add_observations( points_1 );
 
   // add some negative observations
-  for( int i = 0; i < neg_obs.size(); ++i ) {
+  for( size_t i = 0; i < neg_obs.size(); ++i ) {
     process->add_negative_observation( neg_obs[i] );
   }
 
@@ -155,23 +155,23 @@ int main( int argc, char** argv )
   // ok, writeo ut hte experiment details to the meta file
   fout_meta << "# OBSERVATIONS" << std::endl;
   fout_meta << process->_state.observations.size() << std::endl;
-  for( int i = 0; i < process->_state.observations.size(); ++i ) {
+  for( size_t i = 0; i < process->_state.observations.size(); ++i ) {
     fout_meta << process->_state.observations[i] << std::endl;
   }
   fout_meta << "# NEGATIVE OBSERVATION REGIONS" << std::endl;
   fout_meta << process->_state.negative_observations.size() << std::endl;
-  for( int i = 0; i < process->_state.negative_observations.size(); ++i ) {
+  for( size_t i = 0; i < process->_state.negative_observations.size(); ++i ) {
     fout_meta << process->_state.negative_observations[i] << std::endl;
   }
   fout_meta << "# INIT MIXTURE CLUSTERINGS" << std::endl;
-  for( int i = 0; i < process->_state.observations.size(); ++i ) {
+  for( size_t i = 0; i < process->_state.observations.size(); ++i ) {
     fout_meta << process->_state.observation_to_mixture[i] << std::endl;
   }
   fout_meta << "# INIT MODEL" << std::endl;
   fout_meta << process->_state.model << std::endl;
   fout_meta << "# INIT MIXTURES" << std::endl;
   fout_meta << process->_state.mixture_gaussians.size() << std::endl;
-  for( int i = 0; i < process->_state.mixture_gaussians.size(); ++i ) {
+  for( size_t i = 0; i < process->_state.mixture_gaussians.size(); ++i ) {
     fout_meta << "## MIXUTRE " << i << std::endl;
     fout_meta << "### SPREAD" << std::endl;
     fout_meta << process->_state.mixture_gaussians[i] << std::endl;
@@ -211,7 +211,7 @@ int main( int argc, char** argv )
 
   
   // do some plaing
-  long num_samples = 100000;
+  size_t num_samples = 100000;
   for( size_t i = 0; i < num_samples; ++i ) {
     
     mcmc_single_step( process->_state );
@@ -256,11 +256,11 @@ int main( int argc, char** argv )
       << process->_state.model.ruler_direction_precision_distribution.shape << " "
       << process->_state.model.ruler_direction_precision_distribution.rate << " "
       << process->_state.observations.size() << " ";
-    for( int i = 0; i < process->_state.observation_to_mixture.size(); ++i ) {
+    for( size_t i = 0; i < process->_state.observation_to_mixture.size(); ++i ) {
       fout_trace << process->_state.observation_to_mixture[i] << " ";
     }
     fout_trace << process->_state.mixture_gaussians.size() << " ";
-    for( int i = 0; i < process->_state.mixture_gaussians.size(); ++i ) {
+    for( size_t i = 0; i < process->_state.mixture_gaussians.size(); ++i ) {
       fout_trace << process->_state.mixture_gaussians[i].means[0] << " "
 		 << process->_state.mixture_gaussians[i].covariance.data[0] << " "
 		 << process->_state.mixture_period_gammas[i].shape << " " 

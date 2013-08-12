@@ -97,7 +97,7 @@ namespace ruler_point_process {
     oss << state.trace_samples_dir << "/" << context_filename( "samples.trace" );
     std::string filename = oss.str();
     boost::filesystem::create_directories( boost::filesystem::path( filename ).parent_path() );
-    std::ofstream fout_trace( filename, std::ios_base::app | std::ios_base::out );
+    std::ofstream fout_trace( filename.c_str(), std::ios_base::app | std::ios_base::out );
     fout_trace << state.iteration << " " 
 	       << points.size() << " ";
     for( size_t i = 0; i < points.size(); ++i ) {
@@ -137,7 +137,7 @@ namespace ruler_point_process {
       // debug
       if( PRINT_SAMPLE_DEBUG ) {
 	std::cout << std::setw(26) << " ";
-	std::cout << "{" << mixture_i << "} " << ruler_start << " " << period << " " << ruler_length << " " << direction << " #ticks: " << num_ticks << std::endl;
+	std::cout << "{" << mixture_i << "} " << ruler_start << " " << period << " " << ruler_length << " " << ruler_direction << " #ticks: " << num_ticks << std::endl;
       }
 
       // Ok, now for each point starting at the start of ruler
@@ -201,7 +201,7 @@ namespace ruler_point_process {
       // debug
       if( PRINT_SAMPLE_DEBUG ) {
 	std::cout << std::setw(26) << " ";
-	std::cout << "{NEW} " << ruler_start << " " << period << " " << ruler_length << " " << direction << " #ticks: " << num_ticks << std::endl;
+	std::cout << "{NEW} " << ruler_start << " " << period << " " << ruler_length << " " << ruler_direction << " #ticks: " << num_ticks << std::endl;
       }
 
 
@@ -271,7 +271,7 @@ namespace ruler_point_process {
       // debug
       if( PRINT_SAMPLE_DEBUG ) {
 	std::cout << std::setw(26) << " ";
-	std::cout << "{" << mixture_i << "} " << ruler_start << " " << period << " " << ruler_length << " " << direction << " #ticks: " << num_ticks << std::endl;
+	std::cout << "{" << mixture_i << "} " << ruler_start << " " << period << " " << ruler_length << " " << ruler_direction << " #ticks: " << num_ticks << std::endl;
       }
 
       // Ok, now for each point starting at the start of ruler
@@ -335,7 +335,7 @@ namespace ruler_point_process {
       // debug
       if( PRINT_SAMPLE_DEBUG ) {
 	std::cout << std::setw(26) << " ";
-	std::cout << "{NEW} " << ruler_start << " " << period << " " << ruler_length << " " << direction << " #ticks: " << num_ticks << std::endl;
+	std::cout << "{NEW} " << ruler_start << " " << period << " " << ruler_length << " " << ruler_direction << " #ticks: " << num_ticks << std::endl;
       }
 
 
