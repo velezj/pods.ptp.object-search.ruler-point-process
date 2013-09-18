@@ -42,6 +42,8 @@ namespace ruler_point_process {
       return boost::shared_ptr<mcmc_point_process_t>( new ruler_point_process_t( _state ) );
     }
 
+    virtual ~ruler_point_process_t() {}
+
   public: // API
 
     // Description:
