@@ -866,7 +866,18 @@ namespace ruler_point_process {
     }
 
     // copy points and sort them
-    std::vector<nd_point_t> sorted_points = points;
+    std::vector<nd_point_t> sorted_points( points.begin(),
+					   points.end() );
+
+    // debug
+    if( false ) {
+      for( size_t i = 0; i < sorted_points.size(); ++i ) {
+	if( sorted_points[i].n < 1 || sorted_points[i].n > 2 ) {
+	  std::cout << "%% sorted_points[" << i << "].n \\NotIn [1,2]" << std::endl;
+	}
+      }
+    }
+    
     std::sort( sorted_points.begin(),
 	       sorted_points.end(),
 	       point_lexicographical_compare );
