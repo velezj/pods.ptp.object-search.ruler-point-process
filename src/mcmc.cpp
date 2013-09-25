@@ -79,7 +79,7 @@ namespace ruler_point_process {
 
     // Ok, we will now say that is there are too many ticks
     // it's just a nearly impossible thing so low likelhjood
-    if( num_ticks > 30 ) {
+    if( num_ticks > 50 ) {
       return 0;
     }
 
