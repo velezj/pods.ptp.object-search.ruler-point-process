@@ -376,7 +376,129 @@ namespace ruler_point_process {
 
   //======================================================================
   //======================================================================
+
+  void model_print_shallow_trace( const ruler_point_process_state_t& state,
+				  std::ostream& out )
+  {
+    out << "{ ";
+    out << " \"object_class\" : \"ruler_point_process_state_t\" , ";
+    out << " \"model\" : ";
+    model_print_shallow_trace( state.model, out );
+    out << " , ";
+    out << " \"observations\" : [";
+    for( size_t i =  0; i < state.observations.size(); ++i ) {
+      out << to_json( state.observations[i] );
+      if( i < state.observations.size() - 1 ) {
+	out << ",";
+      }
+    }
+    out << "] , ";
+    out << " \"mixture_gaussians\" : [ ";
+    for( size_t i = 0; i < state.mixture_gaussians.size(); ++i ) {
+      out << to_json( state.mixture_gaussians[i] );
+      if( i < state.mixture_gaussians.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+    
+    out << " \"mixture_period_gammas\" : [ ";
+    for( size_t i = 0; i < state.mixture_period_gammas.size(); ++i ) {
+      out << to_json( state.mixture_period_gammas[i] );
+      if( i < state.mixture_period_gammas.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+    
+    out << " \"mixture_ruler_length_gammas\" : [ ";
+    for( size_t i = 0; i < state.mixture_ruler_length_gammas.size(); ++i ) {
+      out << to_json( state.mixture_ruler_length_gammas[i] );
+      if( i < state.mixture_ruler_length_gammas.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+    
+    out << " \"mixture_ruler_start_gaussians\" : [ ";
+    for( size_t i = 0; i < state.mixture_ruler_start_gaussians.size(); ++i ) {
+      out << to_json( state.mixture_ruler_start_gaussians[i] );
+      if( i < state.mixture_ruler_start_gaussians.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+
+    out << " \"mixture_ruler_direction_gaussians\" : [ ";
+    for( size_t i = 0; i < state.mixture_ruler_direction_gaussians.size(); ++i ) {
+      out << to_json( state.mixture_ruler_direction_gaussians[i] );
+      if( i < state.mixture_ruler_direction_gaussians.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+    
+    out << " \"observation_to_mixture\" : [ ";
+    for( size_t i = 0; i < state.observation_to_mixture.size(); ++i ) {
+      out << state.observation_to_mixture[i] << " ";
+      if( i < state.observation_to_mixture.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+
+    out << " \"negative_observations\" : [ ";
+    for( size_t i = 0; i < state.negative_observations.size(); ++i ) {
+      out << to_json( state.negative_observations[i] );
+      if( i < state.negative_observations.size() - 1 ) {
+	out << " , ";
+      }
+    }
+    out << " ] , ";
+    
+    out << " \"iteration\" : " << state.iteration << " ";
+    
+    out << "}";
+  }
+
   //======================================================================
+
+  void model_print_shallow_trace( const ruler_point_process_model_t& model,
+				  std::ostream& out )
+  {
+    out << "{ ";
+    out << " \"alpha\" : " << model.alpha << " , ";
+    out << " \"precision_distribution\" : " << to_json( model.precision_distribution ) << ", ";
+    out << " \"period_distribution\" : " << to_json( model.period_distribution ) << ", ";
+    out << " \"ruler_length_distribution\" : " << to_json( model.ruler_length_distribution ) << ", ";
+    out << " \"ruler_start_mean_distribution\" : " << to_json( model.ruler_start_mean_distribution ) << ", ";
+    out << " \"ruler_start_precision_distribution\" : " << to_json( model.ruler_start_precision_distribution ) << ", ";
+    out << " \"ruler_direction_mean_distribution\" : " << to_json( model.ruler_direction_mean_distribution ) << ", ";
+    out << " \"ruler_direction_precision_distribution\" : " << to_json( model.ruler_direction_precision_distribution ) << ", ";
+    out << " \"prior_variance\" : " << model.prior_variance << " , ";
+    out << " \"prior_ruler_period_p_shape\" : " << model.prior_ruler_period_p_shape << " , ";
+    out << " \"prior_ruler_period_p_rate\" : " << model.prior_ruler_period_p_rate << " , ";
+out << " \"prior_ruler_period_q_shape\" : " << model.prior_ruler_period_q_shape << " , ";
+    out << " \"prior_ruler_period_q_rate\" : " << model.prior_ruler_period_q_rate << " , ";
+out << " \"prior_ruler_period_r_shape\" : " << model.prior_ruler_period_r_shape << " , ";
+    out << " \"prior_ruler_period_r_rate\" : " << model.prior_ruler_period_r_rate << " , ";
+out << " \"prior_ruler_period_s_shape\" : " << model.prior_ruler_period_s_shape << " , ";
+    out << " \"prior_ruler_period_s_rate\" : " << model.prior_ruler_period_s_rate << " , ";
+    out << " \"prior_ruler_length_p_shape\" : " << model.prior_ruler_length_p_shape << " , ";
+    out << " \"prior_ruler_length_p_rate\" : " << model.prior_ruler_length_p_rate << " , ";
+out << " \"prior_ruler_length_q_shape\" : " << model.prior_ruler_length_q_shape << " , ";
+    out << " \"prior_ruler_length_q_rate\" : " << model.prior_ruler_length_q_rate << " , ";
+out << " \"prior_ruler_length_r_shape\" : " << model.prior_ruler_length_r_shape << " , ";
+    out << " \"prior_ruler_length_r_rate\" : " << model.prior_ruler_length_r_rate << " , ";
+out << " \"prior_ruler_length_s_shape\" : " << model.prior_ruler_length_s_shape << " , ";
+    out << " \"prior_ruler_length_s_rate\" : " << model.prior_ruler_length_s_rate << " , ";
+    out << " \"prior_ruler_start_mean\" : " << to_json( model.prior_ruler_start_mean ) << " , ";
+    out << " \"prior_ruler_start_variance\" : " << model.prior_ruler_start_variance << " , ";
+    out << " \"prior_ruler_direction_mean\" : " << to_json( model.prior_ruler_direction_mean ) << " , ";
+    out << " \"prior_ruler_direction_variance\" : " << model.prior_ruler_direction_variance;
+    out << " } ";
+  }
+
   //======================================================================
   //======================================================================
   //======================================================================

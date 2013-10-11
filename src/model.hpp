@@ -171,6 +171,13 @@ namespace ruler_point_process {
 
 
 
+  // Description:
+  // Prints out hte state in a single line
+  void model_print_shallow_trace( const ruler_point_process_state_t& state,
+				  std::ostream& out );
+  void model_print_shallow_trace( const ruler_point_process_model_t& model,
+				  std::ostream& out );
+  
 
 
 }

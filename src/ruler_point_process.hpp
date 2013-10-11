@@ -147,6 +147,12 @@ namespace ruler_point_process {
     }
 
 
+    virtual
+    void print_shallow_trace( std::ostream& out ) const
+    {
+      model_print_shallow_trace( _state, out );
+    }
+
   public: // STATE
 
     
