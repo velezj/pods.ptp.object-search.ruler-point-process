@@ -7,11 +7,14 @@
 #include <limits>
 #include <math-core/io.hpp>
 #include <math-core/utils.hpp>
+#include <math-core/mpt.hpp>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <gsl/gsl_sf_gamma.h>
+#include <boost/math/special_functions/gamma.hpp>
 #include <probability-core/rejection_sampler.hpp>
+#include <probability-core/slice_sampler.hpp>
 #include <gsl/gsl_sf_erf.h>
 #include <math-core/math_function.hpp>
 #include <stdexcept>
@@ -19,6 +22,8 @@
 #include <gsl/gsl_monte_vegas.h>
 #include <gsl/gsl_fit.h>
 #include <boost/filesystem.hpp>
+#include <p2l-common/stat_counter.hpp>
+#include <p2l-common/context.hpp>
 
 #define DEBUG_VERBOSE false
 
@@ -26,8 +31,9 @@ namespace ruler_point_process {
 
   using namespace point_process_core;
   using namespace math_core;
+  using namespace math_core::mpt;
   using namespace probability_core;
-
+  using boost::math::tgamma;
 
 
   //========================================================================
@@ -52,6 +58,7 @@ namespace ruler_point_process {
 			size_t x_dim,
 			void* user_params )
   {
+    P2L_COMMON_push_function_context();
     likelihood_params_t* params = (likelihood_params_t*)user_params;
     int dim = params->point.n;
     assert( 2 * dim + 2 == x_dim );
@@ -93,16 +100,20 @@ namespace ruler_point_process {
 
     // ok, now just multiple all of the distributions
     // for the point in the params and sum over all ticks
-    double lik = 0;
+    mp_float lik = 0;
     for( int tick = 0; tick < num_ticks; ++tick ) {
       nd_point_t tick_point = ruler_start + tick * period * ruler_direction;
       nd_point_t p = zero_point(dim) + (params->point - tick_point);
-      double this_lik 
-	= pdf( p, params->spread_distribution )
-	* pdf( ruler_start, params->ruler_start_distribution )
-	* pdf( ruler_direction_unnormed, params->ruler_direction_distribution )
-	* pdf( length, params->ruler_length_distribution )
-	* pdf( period, params->period_distribution );
+      mp_float this_lik 
+	= pdf( p, params->spread_distribution );
+      this_lik
+	*= pdf( ruler_start, params->ruler_start_distribution );
+      this_lik
+	*= pdf( ruler_direction_unnormed, params->ruler_direction_distribution );
+      this_lik
+	*= pdf( length, params->ruler_length_distribution );
+      this_lik
+	*= pdf( period, params->period_distribution );
 
       // debug
       // std::cout << "   tick: " << tick << " " << tick_point << " orig p: " << params->point << std::endl;
@@ -123,7 +134,7 @@ namespace ruler_point_process {
 
 	// compute probability mass inside region and then
 	// take the mass outside of region
-	double outside_mass = 
+	mp_float outside_mass = 
 	  ( 1.0 - 
 	    (cdf(reg.end,params->spread_distribution)
 	     - cdf(reg.start,params->spread_distribution )));
@@ -141,8 +152,11 @@ namespace ruler_point_process {
 
     // debug
     //std::cout << "  -- total lik: " << lik << std::endl;
+
+    STAT( "num-ticks", num_ticks );
+    STAT( "num-negative-regions", (double)params->negative_observations.size() );
     
-    return lik;
+    return lik.convert_to<double>();
   }
 
 
@@ -157,8 +171,9 @@ namespace ruler_point_process {
     const gaussian_distribution_t& ruler_start_distribution,
     const gaussian_distribution_t& ruler_direction_distribution)
   {
-
+    P2L_COMMON_push_function_context();
     scoped_context_switch context( chain_context( context_t("ruler-process-likelihood") ) );
+
     
     // this is a really ugly marginalization, so we will use 
     // monte carlo integration to get an estimate 
@@ -217,7 +232,30 @@ namespace ruler_point_process {
     if( ranges_high[ length_slot ] > 1e5 ) {
       ranges_high[ length_slot ] = std::max( ranges_low[length_slot], 1e5 );
     }
+    if( ranges_high[ period_slot ] == ranges_low[ period_slot ] ) {
+      ranges_high[ period_slot ] += 1;
+    }
+    if( ranges_high[ length_slot ] == ranges_low[ length_slot ] ) {
+      ranges_high[ length_slot ] += 1;
+    }
 
+    STAT( "start.range.high", ranges_high[ start_slot ] );
+    STAT( "dir.range.high", ranges_high[ dir_slot ] );
+    STAT( "period.range.high", ranges_high[ period_slot ] );
+    STAT( "length.range.high", ranges_high[ length_slot ] );
+    STAT( "start.range.low", ranges_low[ start_slot ] );
+    STAT( "dir.range.low", ranges_low[ dir_slot ] );
+    STAT( "period.range.low", ranges_low[ period_slot ] );
+    STAT( "length.range.low", ranges_low[ length_slot ] );
+    STAT( "start.range.span", ranges_high[ start_slot ] - ranges_low[ start_slot ] );
+    STAT( "dir.range.span", ranges_high[ dir_slot ] - ranges_low[ dir_slot ] );
+    STAT( "period.range.span", ranges_high[ period_slot ] - ranges_low[ period_slot ] );
+    STAT( "length.range.span", ranges_high[ length_slot ] - ranges_low[ length_slot ] );
+    STAT( "start-sigma", start_sigma );
+    STAT( "dir-sigma", dir_sigma );
+    STAT( "period-sigma", period_sigma );
+    STAT( "length-sigma", length_sigma );
+ 
  
 
     // create the gls monte calrlo function
@@ -252,6 +290,9 @@ namespace ruler_point_process {
     } while( fabs( gsl_monte_vegas_chisq(s) - 1.0 ) > 0.5 &&
 	     num_tries < max_tries);
 
+    STAT( "mc.vegas.chisq", gsl_monte_vegas_chisq(s) );
+    STAT( "mc.vegas.num-tries", (double)num_tries );
+
     // free resources
     gsl_monte_vegas_free( s );
     delete[] ranges_low;
@@ -265,6 +306,8 @@ namespace ruler_point_process {
 
     // debug
     //std::cout << "vegas mc tires: " << num_tries << std::endl;
+
+    STAT( "estimated-lik", estimated_lik );
 
     // return the estiamte  form monte carlo integration
     return estimated_lik;
@@ -287,7 +330,7 @@ namespace ruler_point_process {
     const gaussian_distribution_t& ruler_start_distribution,
     const gaussian_distribution_t& ruler_direction_distribution)
   {
-
+    P2L_COMMON_push_function_context();
     scoped_context_switch context( chain_context( context_t("ruler-process-likelihood-mean-approx") ) );
     
     
@@ -399,7 +442,7 @@ namespace ruler_point_process {
   					     const nd_point_t& mixture_mean,
   					     const gamma_distribution_t& prior)
   {
-
+    P2L_COMMON_push_function_context();
     size_t dim = mixture_mean.n;
     if( points.empty() == false ) {
       dim = points[0].n;
@@ -466,6 +509,7 @@ namespace ruler_point_process {
     const dense_matrix_t& covariance,
     const gaussian_distribution_t& prior )
   {
+    P2L_COMMON_push_function_context();
     // create new gaussian for the mean
     // and then samplke from it
 
@@ -513,6 +557,7 @@ namespace ruler_point_process {
     const nd_point_t& mean,
     const gamma_distribution_t& prior )
   {
+    P2L_COMMON_push_function_context();
     int dim = mean.n;
 
     // choose the start
@@ -570,6 +615,7 @@ namespace ruler_point_process {
     const dense_matrix_t& covariance,
     const gaussian_distribution_t& prior )
   {
+    P2L_COMMON_push_function_context();
     // rutnr line into a point
     int dim = prior.dimension;
     if( dim > 2 ) {
@@ -608,6 +654,7 @@ namespace ruler_point_process {
     const nd_point_t& mean,
     const gamma_distribution_t& prior )
   {
+    P2L_COMMON_push_function_context();
     // rutnr line into a point
     int dim = mean.n;
     if( dim > 2 ) {
@@ -657,6 +704,7 @@ namespace ruler_point_process {
     const double& period,
     const gamma_conjugate_prior_t& prior )
   {
+    P2L_COMMON_push_function_context();
 
     gamma_conjugate_prior_t posterior;
     posterior.p = prior.p * period;
@@ -671,7 +719,7 @@ namespace ruler_point_process {
 
     // sample from the posterior
     gamma_distribution_t sample
-      = sample_from( posterior );
+      = slice_sample_from( posterior );
 
     // debug
     if( DEBUG_VERBOSE ) {
@@ -697,7 +745,8 @@ namespace ruler_point_process {
     const double& length,
     const gamma_conjugate_prior_t& prior )
   {
-
+    P2L_COMMON_push_function_context();
+    
     gamma_conjugate_prior_t posterior;
     posterior.p = prior.p * length;
     posterior.q = prior.q + length;
@@ -711,7 +760,7 @@ namespace ruler_point_process {
 
     // sample from the posterior
     gamma_distribution_t sample 
-      = sample_from( posterior );
+      = slice_sample_from( posterior );
     
     // debug
     if( DEBUG_VERBOSE ) {
@@ -753,6 +802,8 @@ namespace ruler_point_process {
   line_model_t
   fit_line( const std::vector<nd_point_t>& points_arg )
   {
+    P2L_COMMON_push_function_context();
+
     line_model_t line;
      if( points_arg.empty() )
       throw std::domain_error( "cannot fit line to 0 poitns!" );
@@ -853,7 +904,8 @@ namespace ruler_point_process {
 			     double& period,
 			     double& length)
   {
-
+    P2L_COMMON_push_function_context();
+    
     if( points.empty() ) {
       throw std::domain_error( "Unable to compute period and length from 0 points!" );
     }
@@ -909,6 +961,7 @@ namespace ruler_point_process {
     double& period,
     double& length )
   {
+    P2L_COMMON_push_function_context();
     
     // fit the line
     line = fit_line( points );
@@ -956,7 +1009,9 @@ namespace ruler_point_process {
     
     double operator()( const double& x ) const
     {
-      return gsl_sf_gamma( x ) * pow(x, (double)num_mixtures - 2 ) * exp( - 1.0 / x ) / gsl_sf_gamma( x + num_obs );
+      mp_float mp_x = x;
+      mp_float res = tgamma( mp_x ) * pow( mp_x, (double)num_mixtures - 2 ) * exp( - 1.0 / mp_x ) / tgamma( mp_x + num_obs );
+      return res.convert_to<double>();
     }
   };
   
@@ -965,14 +1020,17 @@ namespace ruler_point_process {
   				 const std::size_t& num_mixtures,
   				 const std::size_t& num_obs )
   {
+    P2L_COMMON_push_function_context();
+    
     alpha_posterior_likelihood_t lik( alpha,
      				      num_mixtures,
      				      num_obs );
+
+    static std::pair<double,double> support = std::make_pair( 1e-20, 1000.0 );
+    static slice_sampler_workplace_t<double> workspace( support );
     
-    rejection_sampler_status_t status;
-    double sampled_alpha =
-      autoscale_rejection_sample<double>
-      (lik, 0.00001, num_obs + 2, status );
+    double sampled_alpha = slice_sample_1d<double,double>( lik, workspace, 0.001 );
+    
     return sampled_alpha;
   }
   
@@ -1085,24 +1143,27 @@ namespace ruler_point_process {
     
     double operator() (double b) const
     {
-      double h = gsl_sf_gamma( b/2.0 );
+      mp_float mp_b = b;
+      mp_float h = tgamma( mp_b/2.0 );
       if( h > 1000 )
   	return 0.0;
       if( h < 0.00001 )
   	return 0.0;
-      double r = 1.0 / pow( h, k );
-      r *= pow( b * rate / 2.0, (k * b - 3.0) / 2.0 );
-      r *= exp( - 1.0 / ( 2.0 * b ) );
+      mp_float r = 1.0 / pow( h, k );
+      r *= pow( mp_b * rate / 2.0, (k * mp_b - 3.0) / 2.0 );
+      r *= exp( - 1.0 / ( 2.0 * mp_b ) );
       r *= factor;
       if( r > 10000 )
   	return 0;
-      return r;
+      return r.convert_to<double>();
     }
   };
   
   gamma_distribution_t
   resample_precision_distribution_hyperparameters( ruler_point_process_state_t& state )
   {
+    P2L_COMMON_push_function_context();
+
     assert( state.model.ruler_start_mean_distribution.dimension == 1 );
     if( state.model.ruler_start_mean_distribution.dimension != 1 ) {
       throw std::domain_error( "Only implemented for 1D points!" );
@@ -1113,15 +1174,15 @@ namespace ruler_point_process {
     
     // sum the precisions of each mixture
     // as well as the factor for them
-    double prec_sum = 0;
-    double prec_factor = 1;
+    mp_float prec_sum = 0;
+    mp_float prec_factor = 1;
     for( std::size_t i = 0; i < state.mixture_gaussians.size(); ++i ) {
-      double prec = ( 1.0 / state.mixture_gaussians[i].covariance.data[0] ); 
+      mp_float prec = ( 1.0 / state.mixture_gaussians[i].covariance.data[0] ); 
       prec_sum += prec;
       prec_factor *= pow( prec, b/2.0) * exp( - b * w * prec / 2.0 );
     }
     
-    precision_shape_posterior_t lik(prec_factor,
+    precision_shape_posterior_t lik(prec_factor.convert_to<double>(),
      				    state.mixture_gaussians.size(),
      				    state.model.precision_distribution.rate );
     
@@ -1144,7 +1205,7 @@ namespace ruler_point_process {
     // now build up the distribution for the rate of the precision
     gamma_distribution_t new_rate_dist;
     new_rate_dist.shape = ( state.mixture_gaussians.size() * new_shape + 1 ) / 2.0;
-    new_rate_dist.rate = 2 * 1.0 / ( new_shape * prec_sum + 1.0 / state.model.prior_variance );
+    new_rate_dist.rate = 2 * 1.0 / ( new_shape * prec_sum.convert_to<double>() + 1.0 / state.model.prior_variance );
     
     
     // sample a new precision rate
@@ -1204,7 +1265,7 @@ namespace ruler_point_process {
     
     double operator() ( const double& x ) const 
     {
-      double mult = 1;
+      mp_float mult = 1;
       gamma_conjugate_prior_t likelihood_gcp = base_likelihood_gcp;
       switch( param ) {
       case 'p':
@@ -1227,7 +1288,7 @@ namespace ruler_point_process {
 	mult *= likelihood( gamma_data_points[i], likelihood_gcp );
       }	
       mult *= pdf( x, prior );
-      return mult;
+      return mult.convert_to<double>();
     }
   };
 
@@ -1243,6 +1304,7 @@ namespace ruler_point_process {
     const double high_arg = -1,
     const int num_samples = 300)
   {
+    P2L_COMMON_push_function_context();
     
     // create a new posterior functor
     single_parameter_gcp_likelihood_poisson_prior_posterior_t
@@ -1292,6 +1354,12 @@ namespace ruler_point_process {
     if( DEBUG_VERBOSE ) {
       std::cout << "      param " << parameter << ", range [" << low << " " << high << "], step=" << step << std::endl;
     }
+
+    STAT( "range.high", high );
+    STAT( "range.low", low );
+    STAT( "range.span", high - low );
+    STAT( "step", step );
+    STAT( "range.steps" , ( high - low ) / step );
 
     // take the discrete samples, then sample from this discrete distribution
     for( double i = low; i < high; i += step ) {
@@ -1427,7 +1495,9 @@ namespace ruler_point_process {
   resample_period_distribution_hyperparameters
   ( const ruler_point_process_state_t& state )
   {
-
+    
+    P2L_COMMON_push_function_context();
+    
     // debug
     //std::cout << "    hyper period: " << std::endl;
     
@@ -1581,6 +1651,7 @@ namespace ruler_point_process {
   resample_ruler_length_hyperparameters
   ( const ruler_point_process_state_t& state )
   {
+    P2L_COMMON_push_function_context();
 
     // debug
     //std::cout << "    hyper length: " << std::endl;
@@ -1658,6 +1729,7 @@ namespace ruler_point_process {
   resample_ruler_start_mean_hyperparameters
   ( const ruler_point_process_state_t& state )
   {
+    P2L_COMMON_push_function_context();
     
     // construct verctor of observations as the mixutre means
     std::vector<nd_point_t> observed_means;
@@ -1692,7 +1764,8 @@ namespace ruler_point_process {
   resample_ruler_start_precision_hyperparameters
   ( const ruler_point_process_state_t& state )
   {
-    
+    P2L_COMMON_push_function_context();
+
     // get the precicins for the ruler starts as observations
     // Treate each mixture as having a single covariance element
     std::vector<double> observed_prec;
@@ -1722,6 +1795,8 @@ namespace ruler_point_process {
   resample_ruler_direction_mean_hyperparameters
   ( const ruler_point_process_state_t& state )
   {
+    P2L_COMMON_push_function_context();
+
     // construct verctor of observations as the mixutre means
     std::vector<nd_point_t> observed_means;
     for( size_t i = 0; i < state.mixture_ruler_direction_gaussians.size(); ++i ) {
@@ -1756,6 +1831,8 @@ namespace ruler_point_process {
   resample_ruler_direction_precision_hyperparameters
   ( const ruler_point_process_state_t& state )
   {
+    P2L_COMMON_push_function_context();
+    
     // get the precicins for the ruler starts as observations
     // Treate each mixture as having a single covariance element
     std::vector<double> observed_prec;
@@ -1865,7 +1942,7 @@ namespace ruler_point_process {
   
   void mcmc_single_step( ruler_point_process_state_t& state )
   {
-
+    P2L_COMMON_push_function_context();
     scoped_context_switch context( chain_context( context_t("ruler-process-mcmc") ) ); 
     
     // For each observation, sample a corresponding mixture for it
@@ -2191,6 +2268,13 @@ namespace ruler_point_process {
 
     // increment mcmc iteration
     state.iteration += 1;
+
+    // print out stats to a file
+    std::ofstream stat_fout( "stats.log", std::ofstream::app );
+    stat_fout << "+STATS+ ";
+    p2l::common::print_all_stats( stat_fout );
+    stat_fout << std::endl;
+    
   }
 			 
 

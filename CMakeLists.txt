@@ -10,7 +10,7 @@ include(cmake/lcmtypes.cmake)
 lcmtypes_build()
 
 
-add_definitions( -Wall -fdiagnostics-show-option )
+add_definitions( -std=c++0x -Wall -fdiagnostics-show-option )
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
 
 option ( USE_PEDANTIC "Turn on -pendantic mode in gcc. This will spit out *lots* of warnings from lcm :-(, but hopefully none from the rest of the code" OFF)
@@ -32,6 +32,7 @@ pods_install_headers(
   ruler-point-process)
 pods_install_libraries( p2l-ruler-point-process )
 pods_use_pkg_config_packages(p2l-ruler-point-process 
+    p2l-common
     p2l-probability-core 
     gsl-1.16 
     p2l-math-core 
@@ -43,7 +44,7 @@ pods_use_pkg_config_packages(p2l-ruler-point-process
 pods_install_pkg_config_file(p2l-ruler-point-process
     CFLAGS
     LIBS -lp2l-ruler-point-process
-    REQUIRES p2l-math-core p2l-probability-core p2l-point-process-core boost-1.54.0 boost-1.54.0-filesystem boost-1.54.0-exception
+    REQUIRES p2l-common p2l-math-core p2l-probability-core p2l-point-process-core boost-1.54.0 boost-1.54.0-filesystem boost-1.54.0-exception
     VERSION 0.0.1)
 
 
