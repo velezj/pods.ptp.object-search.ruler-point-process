@@ -153,8 +153,8 @@ namespace ruler_point_process {
     // debug
     //std::cout << "  -- total lik: " << lik << std::endl;
 
-    STAT( "num-ticks", num_ticks );
-    STAT( "num-negative-regions", (double)params->negative_observations.size() );
+    STAT_LVL( trace, "num-ticks", num_ticks );
+    STAT_LVL( trace, "num-negative-regions", (double)params->negative_observations.size() );
     
     return lik.convert_to<double>();
   }
@@ -239,22 +239,22 @@ namespace ruler_point_process {
       ranges_high[ length_slot ] += 1;
     }
 
-    STAT( "start.range.high", ranges_high[ start_slot ] );
-    STAT( "dir.range.high", ranges_high[ dir_slot ] );
-    STAT( "period.range.high", ranges_high[ period_slot ] );
-    STAT( "length.range.high", ranges_high[ length_slot ] );
-    STAT( "start.range.low", ranges_low[ start_slot ] );
-    STAT( "dir.range.low", ranges_low[ dir_slot ] );
-    STAT( "period.range.low", ranges_low[ period_slot ] );
-    STAT( "length.range.low", ranges_low[ length_slot ] );
-    STAT( "start.range.span", ranges_high[ start_slot ] - ranges_low[ start_slot ] );
-    STAT( "dir.range.span", ranges_high[ dir_slot ] - ranges_low[ dir_slot ] );
-    STAT( "period.range.span", ranges_high[ period_slot ] - ranges_low[ period_slot ] );
-    STAT( "length.range.span", ranges_high[ length_slot ] - ranges_low[ length_slot ] );
-    STAT( "start-sigma", start_sigma );
-    STAT( "dir-sigma", dir_sigma );
-    STAT( "period-sigma", period_sigma );
-    STAT( "length-sigma", length_sigma );
+    STAT_LVL( trace, "start.range.high", ranges_high[ start_slot ] );
+    STAT_LVL( trace, "dir.range.high", ranges_high[ dir_slot ] );
+    STAT_LVL( trace, "period.range.high", ranges_high[ period_slot ] );
+    STAT_LVL( trace, "length.range.high", ranges_high[ length_slot ] );
+    STAT_LVL( trace, "start.range.low", ranges_low[ start_slot ] );
+    STAT_LVL( trace, "dir.range.low", ranges_low[ dir_slot ] );
+    STAT_LVL( trace, "period.range.low", ranges_low[ period_slot ] );
+    STAT_LVL( trace, "length.range.low", ranges_low[ length_slot ] );
+    STAT_LVL( trace, "start.range.span", ranges_high[ start_slot ] - ranges_low[ start_slot ] );
+    STAT_LVL( trace, "dir.range.span", ranges_high[ dir_slot ] - ranges_low[ dir_slot ] );
+    STAT_LVL( trace, "period.range.span", ranges_high[ period_slot ] - ranges_low[ period_slot ] );
+    STAT_LVL( trace, "length.range.span", ranges_high[ length_slot ] - ranges_low[ length_slot ] );
+    STAT_LVL( trace, "start-sigma", start_sigma );
+    STAT_LVL( trace, "dir-sigma", dir_sigma );
+    STAT_LVL( trace, "period-sigma", period_sigma );
+    STAT_LVL( trace, "length-sigma", length_sigma );
  
  
 
@@ -290,8 +290,8 @@ namespace ruler_point_process {
     } while( fabs( gsl_monte_vegas_chisq(s) - 1.0 ) > 0.5 &&
 	     num_tries < max_tries);
 
-    STAT( "mc.vegas.chisq", gsl_monte_vegas_chisq(s) );
-    STAT( "mc.vegas.num-tries", (double)num_tries );
+    STAT_LVL( debug, "mc.vegas.chisq", gsl_monte_vegas_chisq(s) );
+    STAT_LVL( trace, "mc.vegas.num-tries", (double)num_tries );
 
     // free resources
     gsl_monte_vegas_free( s );
@@ -307,7 +307,7 @@ namespace ruler_point_process {
     // debug
     //std::cout << "vegas mc tires: " << num_tries << std::endl;
 
-    STAT( "estimated-lik", estimated_lik );
+    STAT_LVL( trace, "estimated-lik", estimated_lik );
 
     // return the estiamte  form monte carlo integration
     return estimated_lik;
@@ -1355,11 +1355,11 @@ namespace ruler_point_process {
       std::cout << "      param " << parameter << ", range [" << low << " " << high << "], step=" << step << std::endl;
     }
 
-    STAT( "range.high", high );
-    STAT( "range.low", low );
-    STAT( "range.span", high - low );
-    STAT( "step", step );
-    STAT( "range.steps" , ( high - low ) / step );
+    STAT_LVL( trace, "range.high", high );
+    STAT_LVL( trace, "range.low", low );
+    STAT_LVL( trace, "range.span", high - low );
+    STAT_LVL( trace, "step", step );
+    STAT_LVL( trace, "range.steps" , ( high - low ) / step );
 
     // take the discrete samples, then sample from this discrete distribution
     for( double i = low; i < high; i += step ) {
@@ -2270,7 +2270,7 @@ namespace ruler_point_process {
     state.iteration += 1;
 
     // print out stats to a file
-    std::ofstream stat_fout( "stats.log", std::ofstream::app );
+    std::ofstream stat_fout( "stats.log" );
     stat_fout << "+STATS+ ";
     p2l::common::print_all_stats( stat_fout );
     stat_fout << std::endl;
