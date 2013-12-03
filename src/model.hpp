@@ -102,6 +102,15 @@ namespace ruler_point_process {
 
   };
 
+  
+  // Description:
+  // Possible likelihood approximations for the ruler process
+  enum likelihood_algorithm {
+    monte_carlo_likelihood_approximation,
+    mean_likelihood_approximation,
+    mode_likelihood_approximation
+  };
+  
 
   // Description:
   // The ruler point process state
@@ -146,6 +155,9 @@ namespace ruler_point_process {
 
     // The iterations (of mcmc) done to this state
     double iteration;
+
+    // which likelihood do we want to use
+    likelihood_algorithm likelihood_alg;
 
   } ruler_point_process_state_t;
 

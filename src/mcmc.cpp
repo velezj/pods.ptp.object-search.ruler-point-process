@@ -381,8 +381,76 @@ namespace ruler_point_process {
     return approx_lik;
   }
 
+  //========================================================================
 
-  // //========================================================================
+
+  // Description:
+  // the APPROXIMATE likelihood ofr a mixture
+  // we jsut take the mode of all the distributions rather than actually
+  // computing the tru marginals
+  double likelihood_of_single_point_for_mixture_mode_approx
+  ( const nd_point_t& point,
+    const std::vector<nd_aabox_t>& negative_observations,
+    const gaussian_distribution_t& spread_distribution,
+    const gamma_distribution_t& period_distribution,
+    const gamma_distribution_t& ruler_length_distribution,
+    const gaussian_distribution_t& ruler_start_distribution,
+    const gaussian_distribution_t& ruler_direction_distribution)
+  {
+    P2L_COMMON_push_function_context();
+    scoped_context_switch context( chain_context( context_t("ruler-process-likelihood-mean-approx") ) );
+    
+    
+    // this is a really ugly marginalization, so we will use 
+    // the modes to get an approximation
+
+    // the ordering of the variables:
+    // ruler start locaiton (dim slots)
+    // ruler direction (dim slots)
+    // ruler length (1 slot)
+    // ruler period (1 slot)
+    int dim = point.n;
+    int start_slot = 0;
+    int dir_slot = start_slot + dim;
+    int length_slot = dir_slot + dim;
+    int period_slot = length_slot + 1;
+    int num_slots = period_slot + 1;
+
+    // create the gls monte calrlo function
+    likelihood_params_t params = { point, 
+				   spread_distribution,
+				   period_distribution,
+				   ruler_length_distribution,
+				   ruler_start_distribution,
+				   ruler_direction_distribution,
+				   negative_observations };
+    
+    // ok, now ask only for the likelihood given the modes of the
+    // distributions
+    nd_point_t mode_start = mode( ruler_start_distribution );
+    nd_point_t mode_dir = mode( ruler_direction_distribution );
+    double mode_length = mode( ruler_length_distribution );
+    double mode_period = mode( period_distribution );
+    double* x = new double[ num_slots ];
+    for( int i = 0 ; i < mode_start.n; ++i ) {
+      x[ start_slot + i ] = mode_start.coordinate[i];
+    }
+    for( int i = 0 ; i < mode_dir.n; ++i ) {
+      x[ dir_slot + i ] = mode_dir.coordinate[i];
+    }
+    x[ length_slot ] = mode_length;
+    x[ period_slot ] = mode_period;
+
+    double approx_lik = likelihood_mc( x, num_slots, &params );
+    
+
+    // return the estiamte  form monte carlo integration
+    return approx_lik;
+  }
+
+
+
+  //========================================================================
 
   // nd_point_t
   // resample_mixture_tick_gaussian_mean( const std::vector<nd_point_t>& points, 
@@ -2000,18 +2068,48 @@ namespace ruler_point_process {
 	// std::cout << "  MIXTURE: " << mixture_i << " (obs" << observation_i << ")" << std::endl;
 
   	// likelihood of this observation comming from this mixtiure
-  	double lik = 
-  	  likelihood_of_single_point_for_mixture
-  	  ( state.observations[ observation_i ],
-	    state.negative_observations,
-  	    state.mixture_gaussians[ mixture_i ],
-  	    state.mixture_period_gammas[ mixture_i ],
-  	    state.mixture_ruler_length_gammas[ mixture_i ],
-  	    state.mixture_ruler_start_gaussians[ mixture_i ],
-  	    state.mixture_ruler_direction_gaussians[ mixture_i ]);
-  	lik *= ( num_obs_in_mixture /
-  		 ( state.observations.size() -1 + state.model.alpha ) );
-
+  	double lik;
+	switch( state.likelihood_alg ) {
+	case monte_carlo_likelihood_approximation:
+	  lik = 
+	    likelihood_of_single_point_for_mixture
+	    ( state.observations[ observation_i ],
+	      state.negative_observations,
+	      state.mixture_gaussians[ mixture_i ],
+	      state.mixture_period_gammas[ mixture_i ],
+	      state.mixture_ruler_length_gammas[ mixture_i ],
+	      state.mixture_ruler_start_gaussians[ mixture_i ],
+	      state.mixture_ruler_direction_gaussians[ mixture_i ]);
+	  break;
+	case mean_likelihood_approximation:
+	  lik = 
+	    likelihood_of_single_point_for_mixture_mean_approx
+	    ( state.observations[ observation_i ],
+	      state.negative_observations,
+	      state.mixture_gaussians[ mixture_i ],
+	      state.mixture_period_gammas[ mixture_i ],
+	      state.mixture_ruler_length_gammas[ mixture_i ],
+	      state.mixture_ruler_start_gaussians[ mixture_i ],
+	      state.mixture_ruler_direction_gaussians[ mixture_i ]);
+	  break;
+	case mode_likelihood_approximation:
+	  lik = 
+	    likelihood_of_single_point_for_mixture_mode_approx
+	    ( state.observations[ observation_i ],
+	      state.negative_observations,
+	      state.mixture_gaussians[ mixture_i ],
+	      state.mixture_period_gammas[ mixture_i ],
+	      state.mixture_ruler_length_gammas[ mixture_i ],
+	      state.mixture_ruler_start_gaussians[ mixture_i ],
+	      state.mixture_ruler_direction_gaussians[ mixture_i ]);
+	  break;
+	default:
+	  assert(false);
+	}
+	  
+	lik *= ( num_obs_in_mixture /
+		 ( state.observations.size() -1 + state.model.alpha ) );
+	
 	// debug
 	if( DEBUG_VERBOSE ) {
 	  std::cout << "  mixture: " << mixture_i << " obs: " << observation_i << " " << state.observations[ observation_i ] << std::endl;
@@ -2051,7 +2149,7 @@ namespace ruler_point_process {
   	sample_gaussian_from( state.model.ruler_direction_mean_distribution,
   			      state.model.ruler_direction_precision_distribution );
       double new_mixture_lik = 
-  	likelihood_of_single_point_for_mixture
+  	likelihood_of_single_point_for_mixture_mode_approx
   	( state.observations[ observation_i ],
 	  state.negative_observations,
   	  spread_distribution,

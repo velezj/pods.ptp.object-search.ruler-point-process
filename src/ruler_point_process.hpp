@@ -44,6 +44,14 @@ namespace ruler_point_process {
 
     virtual ~ruler_point_process_t() {}
 
+
+    // Description:
+    // Set likelihood algorithm to use
+    void set_liklihood_algorithm( const likelihood_algorithm& alg )
+    {
+      _state.likelihood_alg = alg;
+    }
+
   public: // API
 
     // Description:
