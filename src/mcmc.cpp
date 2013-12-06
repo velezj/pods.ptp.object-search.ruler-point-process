@@ -1079,7 +1079,12 @@ namespace ruler_point_process {
     {
       mp_float mp_x = x;
       mp_float res = tgamma( mp_x ) * pow( mp_x, (double)num_mixtures - 2 ) * exp( - 1.0 / mp_x ) / tgamma( mp_x + num_obs );
-      return res.convert_to<double>();
+      double d = res.convert_to<double>();
+      if( d == 0 ) {
+	//std::cout << "  %bump alpha_lik to enforce > 0" << std::endl;
+	d = 10.0 * std::numeric_limits<double>::min();
+      }
+      return d;
     }
   };
   
@@ -1094,7 +1099,7 @@ namespace ruler_point_process {
      				      num_mixtures,
      				      num_obs );
 
-    static std::pair<double,double> support = std::make_pair( 1e-20, 1000.0 );
+    static std::pair<double,double> support = std::make_pair( 0.001, 1000.0 );
     static slice_sampler_workplace_t<double> workspace( support );
     
     double sampled_alpha = slice_sample_1d<double,double>( lik, workspace, 0.001 );
