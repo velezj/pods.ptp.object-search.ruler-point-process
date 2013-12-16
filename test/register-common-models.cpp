@@ -152,6 +152,57 @@ namespace models {
     return planner_process;
   }
 
+  //=====================================================================
+
+  boost::shared_ptr<point_process_core::mcmc_point_process_t>
+  ruler_2d_small_003( const math_core::nd_aabox_t& window )
+  {
+    int dim = 2;
+    ruler_point_process_model_t model;
+    model.prior_ruler_start_mean = zero_point( dim );
+    model.prior_ruler_direction_mean = zero_point( dim );
+    model.alpha = 1;
+    model.precision_distribution.shape = 500;
+    model.precision_distribution.rate = 10;
+    model.period_distribution.p = pow(2.15,1);
+    model.period_distribution.q = 2.15*1;
+    model.period_distribution.r = 1;
+    model.period_distribution.s = 1;
+    model.ruler_length_distribution.p = pow(10,1);
+    model.ruler_length_distribution.q = 10 * 1;
+    model.ruler_length_distribution.r = 1;
+    model.ruler_length_distribution.s = 1;
+    model.ruler_start_mean_distribution.dimension = dim;
+    model.ruler_start_mean_distribution.means.push_back( 0.4 );
+    model.ruler_start_mean_distribution.means.push_back( 0.4 );
+    model.ruler_start_mean_distribution.covariance = to_dense_mat( Eigen::MatrixXd::Identity(dim,dim) * (0.4*0.4) );
+    model.ruler_start_precision_distribution.shape = 500;
+    model.ruler_start_precision_distribution.rate = 10;
+    model.ruler_direction_mean_distribution.dimension = dim;
+    model.ruler_direction_mean_distribution.means.push_back( 10 );
+    model.ruler_direction_mean_distribution.means.push_back( 10 );
+    model.ruler_direction_mean_distribution.covariance = to_dense_mat( Eigen::MatrixXd::Identity(dim,dim) * 1 );
+    model.ruler_direction_precision_distribution.shape = 500;
+    model.ruler_direction_precision_distribution.rate = 10;
+    std::vector<nd_point_t> init_points;
+    init_points.push_back( point( 0.7, 0.7 ) );
+    init_points.push_back( point( 0.2, 0.2 ) );
+    init_points.push_back( point( 1.2, 1.2 ) );
+    init_points.push_back( point( 3.7, 3.0 ) );
+    init_points.push_back( point( 2.2, 2.2 ) );
+    init_points.push_back( point( 6.7, 6.7 ) );
+    boost::shared_ptr<ruler_point_process_t> process = 
+      boost::shared_ptr<ruler_point_process_t>
+      ( new ruler_point_process_t( window,
+				   model,
+				   init_points ) );
+    boost::shared_ptr<mcmc_point_process_t> planner_process
+      = boost::shared_ptr<mcmc_point_process_t>( process );
+      
+    return planner_process;
+  }
+
+
     
   //=====================================================================
     
@@ -306,6 +357,11 @@ void register_experiments()
   register_model
     ( "test::model::ruler_2d_small_002",
       model_f);
+  model_f = models::ruler_2d_small_003;
+  register_model
+    ( "test::model::ruler_2d_small_003",
+      model_f);
+
 
 
   boost::function< boost::shared_ptr<planner_core::grid_planner_t> ( boost::shared_ptr<point_process_core::mcmc_point_process_t>&) > planner_f;

@@ -23,11 +23,13 @@ endif (USE_PEDANTIC)
 add_library( p2l-ruler-point-process SHARED
   src/model.cpp
   src/mcmc.cpp
+  src/plots.cpp
 )
 pods_install_headers(
   src/model.hpp
   src/mcmc.hpp
   src/ruler_point_process.hpp
+  src/plots.hpp
   DESTINATION
   ruler-point-process)
 pods_install_libraries( p2l-ruler-point-process )
@@ -40,11 +42,12 @@ pods_use_pkg_config_packages(p2l-ruler-point-process
     lcmtypes_p2l-math-core 
     boost-1.54.0
     boost-1.54.0-filesystem
-    boost-1.54.0-exception )
+    boost-1.54.0-exception
+    plot-server-api )
 pods_install_pkg_config_file(p2l-ruler-point-process
     CFLAGS
     LIBS -lp2l-ruler-point-process
-    REQUIRES p2l-common p2l-math-core p2l-probability-core p2l-point-process-core boost-1.54.0 boost-1.54.0-filesystem boost-1.54.0-exception
+    REQUIRES p2l-common p2l-math-core p2l-probability-core p2l-point-process-core boost-1.54.0 boost-1.54.0-filesystem boost-1.54.0-exception plot-server-api
     VERSION 0.0.1)
 
 
