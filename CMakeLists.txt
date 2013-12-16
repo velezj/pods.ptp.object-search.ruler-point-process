@@ -24,6 +24,7 @@ add_library( p2l-ruler-point-process SHARED
   src/model.cpp
   src/mcmc.cpp
   src/plots.cpp
+  src/ruler_point_process.cpp
 )
 pods_install_headers(
   src/model.hpp

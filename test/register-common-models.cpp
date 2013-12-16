@@ -179,8 +179,8 @@ namespace models {
     model.ruler_start_precision_distribution.shape = 500;
     model.ruler_start_precision_distribution.rate = 10;
     model.ruler_direction_mean_distribution.dimension = dim;
-    model.ruler_direction_mean_distribution.means.push_back( 10 );
-    model.ruler_direction_mean_distribution.means.push_back( 10 );
+    model.ruler_direction_mean_distribution.means.push_back( 1 );
+    model.ruler_direction_mean_distribution.means.push_back( 1 );
     model.ruler_direction_mean_distribution.covariance = to_dense_mat( Eigen::MatrixXd::Identity(dim,dim) * 1 );
     model.ruler_direction_precision_distribution.shape = 500;
     model.ruler_direction_precision_distribution.rate = 10;

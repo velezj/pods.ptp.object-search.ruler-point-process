@@ -63,10 +63,27 @@ BOOST_AUTO_TEST_SUITE( ruler_process_plots )
 BOOST_FIXTURE_TEST_CASE( plots_test, fixture_rp )
 {
 
-  std::string plot_id =
-    plot_ruler_point_process( *rpp.get(),
-			      "test-rpp" );
-  std::cout << "PLOT-ID: " << plot_id << std::endl;
+  // step the point process for a bit
+  size_t num_mcmc_steps = 20;
+  rpp->set_liklihood_algorithm( ruler_point_process::mean_likelihood_approximation );
+  size_t num_plots = 10;
+
+  for( size_t p = 0; p < num_plots; ++p ) {
+    for( size_t i = 0; i < num_mcmc_steps; ++i ) {
+      rpp->single_mcmc_step();
+      std::cout << ".";
+      std::cout.flush();
+    }
+    std::cout << std::endl;
+
+    
+    std::ostringstream oss;
+    oss << "test-rp-" << p;
+    std::string plot_id =
+      plot_ruler_point_process( *rpp.get(),
+				oss.str() );
+    std::cout << "PLOT-ID: " << plot_id << std::endl;
+  }
 
 }
 

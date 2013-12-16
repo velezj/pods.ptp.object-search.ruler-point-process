@@ -39,6 +39,31 @@ namespace ruler_point_process {
   //===============================================================
 
   std::string
+  create_window_dataseries( const ruler_point_process_t& pp,
+			    const ptree& extra_config,
+			    const std::string& title )
+  {
+    std::vector<data_point_t> data_points;
+    nd_aabox_t window = pp.window();
+    data_points.push_back( nd_point_to_data_point( window.start ) );
+    data_points.push_back
+      ( nd_point_to_data_point( point( window.end.coordinate[0],
+				       window.start.coordinate[1] ) ) );
+    data_points.push_back( nd_point_to_data_point( window.end ) );
+    data_points.push_back
+      ( nd_point_to_data_point( point( window.start.coordinate[0],
+				       window.end.coordinate[1] ) ) );
+    data_points.push_back( nd_point_to_data_point( window.start ) );
+
+    ptree config = extra_config;
+    return add_data_series( data_points,
+			    config,
+			    title );
+  }
+
+  //===============================================================
+
+  std::string
   create_observations_dataseries( const ruler_point_process_t& pp,
 				  const ptree& extra_config,
 				  const std::string& title )
@@ -423,6 +448,13 @@ namespace ruler_point_process {
   plot_ruler_point_process( const ruler_point_process_t& pp,
 			    const std::string& title) {
 
+    // define a data series with the point process window
+    std::string window_ds
+      = create_window_dataseries
+      ( pp,
+	ptree(),
+	"window-of-" + title );
+
     // define a data series with the observations for the point process_t
     std::string obs_ds
       = create_observations_dataseries
@@ -485,9 +517,20 @@ namespace ruler_point_process {
     // 	"ruler-directions-of-" + title );
 
     // create some predefined configs for plots (mostly the styles)
+    ptree range;
+    range.put( "x.min", pp.window().start.coordinate[0] );
+    range.put( "x.max", pp.window().end.coordinate[0] );
+    range.put( "y.min", pp.window().start.coordinate[1] );
+    range.put( "y.max", pp.window().end.coordinate[1] );
+    ptree window_style;
+    window_style.put( "plot_prefix", "plot" );
+    window_style.put( "gnuplot.style", "lines" );
+    window_style.put_child( "range", range );
     ptree point_style;
     point_style.put( "plot_prefix", "plot" );
     point_style.put( "gnuplot.style", "points" );
+    point_style.put( "hidden", true );
+    point_style.put_child( "range", range );
     ptree ellipse_style;
     ellipse_style.put( "plot_prefix", "plot" );
     ellipse_style.put( "gnuplot.style", "ellipses" );
@@ -496,9 +539,13 @@ namespace ruler_point_process {
     ellipse_style.add( "wanted_attributes.", "major_diameter" );
     ellipse_style.add( "wanted_attributes.", "minor_diameter" );
     ellipse_style.add( "wanted_attributes.", "angle" );
+    ellipse_style.put( "hidden", true );
+    ellipse_style.put_child( "range", range );
     ptree line_style;
     line_style.put( "plot_prefix", "plot" );
     line_style.put( "gnuplot.style", "lines" );
+    line_style.put( "hidden", true );
+    line_style.put_child( "range", range );
     ptree ruler_style;
     ruler_style.put( "plot_prefix", "plot" );
     ruler_style.put( "gnuplot.style", "vectors" );
@@ -506,9 +553,14 @@ namespace ruler_point_process {
     ruler_style.add( "wanted_attributes.", "y" );
     ruler_style.add( "wanted_attributes.", "dx" );
     ruler_style.add( "wanted_attributes.", "dy" );
+    ruler_style.put( "hidden", true );
+    ruler_style.put_child( "range", range );
     ptree dir_style;
     dir_style.put( "plot_prefix", "plot" );
     dir_style.put( "gnuplot.style", "bars" );
+    dir_style.put( "hidden", true );
+    dir_style.put_child( "range", range );
+    
 
     
     
@@ -516,7 +568,7 @@ namespace ruler_point_process {
     // and a compound plot with all of these plots together
     std::vector< std::string > plot_ids;
     plot_ids.push_back( create_plot( point_style,
-				     { obs_ds } ) );
+     				     { obs_ds } ) );
     plot_ids.push_back( create_plot( point_style,
 				     { mean_tick_ds } ) );
     plot_ids.push_back( create_plot( ellipse_style,
@@ -533,8 +585,8 @@ namespace ruler_point_process {
     // 				     { ruler_direction_distribution_ds } ) );
    
     std::string compound_plot
-      = create_plot( point_style,
-		     { obs_ds },
+      = create_plot( window_style,
+		     { window_ds },
 		     title );
     for( std::string pid : plot_ids ) {
       add_plot_to_plot( pid, compound_plot );
