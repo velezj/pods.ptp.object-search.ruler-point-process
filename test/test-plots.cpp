@@ -348,5 +348,24 @@ BOOST_FIXTURE_TEST_CASE( plots_test_3, fixture_rp )
 
 //=========================================================================
 
+BOOST_FIXTURE_TEST_CASE( plots_test_planner_1, fixture_rp )
+{
+
+  nd_aabox_t initial_window = aabox( point( 0.0, 0.0 ),
+				     point( 7.0, 7.0 ) );
+  nd_aabox_t true_init_window =
+    setup_planner_with_initial_observations
+    ( planner,
+      false,
+      initial_window,
+      groundtruth );
+
+
+  std::string pid = planner->plot( "test-planner-plot" );
+  std::cout << "Planner PLOT-ID: " << pid << std::endl;
+}
+
+//=========================================================================
+
 
 BOOST_AUTO_TEST_SUITE_END()

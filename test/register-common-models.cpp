@@ -196,6 +196,7 @@ namespace models {
       ( new ruler_point_process_t( window,
 				   model,
 				   init_points ) );
+    process->set_liklihood_algorithm( mean_likelihood_approximation );
     boost::shared_ptr<mcmc_point_process_t> planner_process
       = boost::shared_ptr<mcmc_point_process_t>( process );
       

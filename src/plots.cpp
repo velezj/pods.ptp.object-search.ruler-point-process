@@ -665,7 +665,9 @@ namespace ruler_point_process {
     window_style.put( "plot_prefix", "plot" );
     window_style.put( "gnuplot.style", "lines" );
     window_style.put_child( "range", range );
-    window_style.put( "gnuplot.keep_gnuplot_files", true );
+    window_style.put( "pre_gnuplot_commands",
+		      "set key outside horizontal\n" );
+    //window_style.put( "gnuplot.keep_gnuplot_files", true );
     ptree dots_style;
     dots_style.put( "plot_prefix", "plot" );
     dots_style.put( "gnuplot.style", "dots" );
