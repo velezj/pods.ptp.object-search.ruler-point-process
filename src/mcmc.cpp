@@ -26,6 +26,7 @@
 #include <p2l-common/context.hpp>
 
 #define DEBUG_VERBOSE false
+#define VERBOSE_LIKELIHOOD_MC false
 
 namespace ruler_point_process {
 
@@ -82,7 +83,9 @@ namespace ruler_point_process {
     int num_ticks = (int)floor( length / period );
 
     // debug
-    //std::cout << "        .. num ticks: " << num_ticks << " (per: " << period << " len:" << length << ")" << std::endl;
+    if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+      std::cout << "        .. num ticks: " << num_ticks << " (per: " << period << " len:" << length << ")" << std::endl;
+    }
 
     // Ok, we will now say that is there are too many ticks
     // it's just a nearly impossible thing so low likelhjood
@@ -116,12 +119,14 @@ namespace ruler_point_process {
 	*= pdf( period, params->period_distribution );
 
       // debug
-      // std::cout << "   tick: " << tick << " " << tick_point << " orig p: " << params->point << std::endl;
-      // std::cout << "      p( p = " << p << " ; " << params->spread_distribution << " ): " << pdf( p, params->spread_distribution ) << std::endl;
-      // std::cout << "      p( start = " << ruler_start << " ; " << params->ruler_start_distribution << " ): " << pdf( ruler_start, params->ruler_start_distribution ) << std::endl;
-      // std::cout << "      p( dir = " << ruler_direction_unnormed << " ; " << params->ruler_direction_distribution << " ): " << pdf( ruler_direction_unnormed, params->ruler_direction_distribution ) << std::endl;
-      // std::cout << "      p( len = " << length << " ; " << params->ruler_length_distribution << " ): " << pdf( length, params->ruler_length_distribution ) << std::endl;
-      // std::cout << "      p( period = " << period << " ; " << params->period_distribution << " ): " << pdf( period, params->period_distribution ) << std::endl;
+      if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+	std::cout << "   tick: " << tick << " " << tick_point << " orig p: " << params->point << std::endl;
+	std::cout << "      p( p = " << p << " ; " << params->spread_distribution << " ): " << pdf( p, params->spread_distribution ) << std::endl;
+	std::cout << "      p( start = " << ruler_start << " ; " << params->ruler_start_distribution << " ): " << pdf( ruler_start, params->ruler_start_distribution ) << std::endl;
+	std::cout << "      p( dir = " << ruler_direction_unnormed << " ; " << params->ruler_direction_distribution << " ): " << pdf( ruler_direction_unnormed, params->ruler_direction_distribution ) << std::endl;
+	std::cout << "      p( len = " << length << " ; " << params->ruler_length_distribution << " ): " << pdf( length, params->ruler_length_distribution ) << std::endl;
+	std::cout << "      p( period = " << period << " ; " << params->period_distribution << " ): " << pdf( period, params->period_distribution ) << std::endl;
+      }
       
       // take care of the negative regions by computing the mass which
       // lies inside and taking that out
@@ -141,11 +146,15 @@ namespace ruler_point_process {
 	this_lik *= outside_mass;
 
 	// debug
-	//std::cout << "      neg region: " << reg << " outside mass: " << outside_mass << std::endl;
+	if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+	  std::cout << "      neg region: " << reg << " outside mass: " << outside_mass << std::endl;
+	}
       }
 
       // debug
-      //std::cout << "      this lik: " << this_lik << std::endl;
+      if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+	std::cout << "      this lik: " << this_lik << std::endl;
+      }
 
       lik += this_lik;
     }
@@ -786,8 +795,12 @@ namespace ruler_point_process {
     }
 
     // sample from the posterior
+    static std::pair<nd_point_t,nd_point_t> support 
+      = std::make_pair( point( 1.0e-2, 1.0e-3 ),
+			point( 1.0e2, 1.0e3 ) );
+    static slice_sampler_workplace_t<nd_point_t> workspace(support);
     gamma_distribution_t sample
-      = slice_sample_from( posterior );
+      = slice_sample_from( posterior, workspace );
 
     // debug
     if( DEBUG_VERBOSE ) {
@@ -827,8 +840,12 @@ namespace ruler_point_process {
     }
 
     // sample from the posterior
+    static std::pair<nd_point_t,nd_point_t> support 
+      = std::make_pair( point( 1.0e-2, 1.0e-3 ),
+			point( 1.0e2, 1.0e3 ) );
+    static slice_sampler_workplace_t<nd_point_t> workspace(support);
     gamma_distribution_t sample 
-      = slice_sample_from( posterior );
+      = slice_sample_from( posterior, workspace );
     
     // debug
     if( DEBUG_VERBOSE ) {
@@ -2112,7 +2129,7 @@ namespace ruler_point_process {
 	  assert(false);
 	}
 	  
-	lik *= ( num_obs_in_mixture /
+	lik *= ( (double)num_obs_in_mixture /
 		 ( state.observations.size() -1 + state.model.alpha ) );
 	
 	// debug
