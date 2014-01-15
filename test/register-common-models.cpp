@@ -17,7 +17,8 @@ namespace models {
   //=====================================================================
 
   boost::shared_ptr<point_process_core::mcmc_point_process_t>
-  ruler_1d_small_001( const math_core::nd_aabox_t& window )
+  ruler_1d_small_001( const math_core::nd_aabox_t& window,
+		      const std::vector<math_core::nd_point_t>& gt )
   {
     int dim = 1;
     ruler_point_process_model_t model;
@@ -63,7 +64,8 @@ namespace models {
   //=====================================================================
 
   boost::shared_ptr<point_process_core::mcmc_point_process_t>
-  ruler_2d_small_001( const math_core::nd_aabox_t& window )
+  ruler_2d_small_001( const math_core::nd_aabox_t& window,
+		      const std::vector<math_core::nd_point_t>& gt  )
   {
     int dim = 2;
     ruler_point_process_model_t model;
@@ -109,7 +111,8 @@ namespace models {
   //=====================================================================
 
   boost::shared_ptr<point_process_core::mcmc_point_process_t>
-  ruler_2d_small_002( const math_core::nd_aabox_t& window )
+  ruler_2d_small_002( const math_core::nd_aabox_t& window,
+		      const std::vector<math_core::nd_point_t>& gt  )
   {
     int dim = 2;
     ruler_point_process_model_t model;
@@ -155,7 +158,8 @@ namespace models {
   //=====================================================================
 
   boost::shared_ptr<point_process_core::mcmc_point_process_t>
-  ruler_2d_small_003( const math_core::nd_aabox_t& window )
+  ruler_2d_small_003( const math_core::nd_aabox_t& window,
+		      const std::vector<math_core::nd_point_t>& gt  )
   {
     int dim = 2;
     ruler_point_process_model_t model;
@@ -208,7 +212,8 @@ namespace models {
   //=====================================================================
 
   boost::shared_ptr<point_process_core::mcmc_point_process_t>
-  ruler_2d_small_004( const math_core::nd_aabox_t& window )
+  ruler_2d_small_004( const math_core::nd_aabox_t& window,
+		      const std::vector<math_core::nd_point_t>& gt  )
   {
     int dim = 2;
     ruler_point_process_model_t model;
@@ -395,7 +400,7 @@ void register_experiments()
       worlds::groundtruth_2d_001,
       worlds::window_2d_001 );		
 
-  boost::function< boost::shared_ptr<point_process_core::mcmc_point_process_t> (const math_core::nd_aabox_t&)> model_f;
+  boost::function< boost::shared_ptr<point_process_core::mcmc_point_process_t> (const math_core::nd_aabox_t&, const std::vector<math_core::nd_point_t>& )> model_f;
   model_f = models::ruler_1d_small_001;
   register_model
     ( "test::model::ruler_1d_small_001",

@@ -44,7 +44,9 @@ struct fixture_rp
 
     groundtruth = groundtruth_for_world( "test::world::2d_001" );
     window = window_for_world( "test::world::2d_001" );    
-    pp = get_model_by_id( "test::model::ruler_2d_small_002", window ); 
+    pp = get_model_by_id( "test::model::ruler_2d_small_002", 
+			  window, 
+			  groundtruth ); 
     rpp = boost::dynamic_pointer_cast< ruler_point_process_t >( pp );
     planner = 
       get_planner_by_id( "test::planner::shortest_path_next_planner_001", pp );

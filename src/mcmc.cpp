@@ -533,12 +533,13 @@ namespace ruler_point_process {
     for( size_t i = 0; i < points.size(); ++i ) {
       sum_distance += distance_sq( points[i], mixture_mean );
     }
+    double data_precision = 1.0 / sqrt( sum_distance );
 
     // create the new distributions
     gamma_distribution_t new_dist;
-    new_dist.shape = prior.shape + points.size() / 2.0;
+    new_dist.shape = prior.shape + 1.0 / 2.0;
     //new_dist.rate = 1.0 / ( sum_distance + prior.shape * prior.rate );
-    new_dist.rate = prior.rate + sum_distance / 2.0;
+    new_dist.rate = prior.rate + data_precision / 2.0;
     
     // sample a new precision
     double prec = sample_from(new_dist);
@@ -655,11 +656,12 @@ namespace ruler_point_process {
 
     // compute the sum distance sqaured between points and mean
     double sum_distance = distance_sq( start, mean );
+    double x_precision = 1.0 / sqrt( sum_distance );
 
     // create the new distributions
     gamma_distribution_t new_dist;
     new_dist.shape = prior.shape + 1 / 2.0;
-    new_dist.rate = prior.rate + sum_distance / 2.0;
+    new_dist.rate = prior.rate + x_precision / 2.0;
     
     // sample a new precision
     double prec = sample_from(new_dist);
