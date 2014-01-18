@@ -1,6 +1,6 @@
 
-#if !defined( __MCMC_HPP__ )
-#define __MCMC_HPP__
+#if !defined( __RULER_POINT_PROCESS_MCMC_HPP__ )
+#define __RULER_POINT_PROCESS_MCMC_HPP__
 
 #include "model.hpp"
 #include <probability-core/distributions.hpp>

@@ -701,9 +701,16 @@ namespace ruler_point_process {
       throw std::domain_error( "Cannot handle more than 2D lines!" );
     }
     nd_point_t dir = zero_point(dim);
-    dir.coordinate[0] = cos( line.slope );
-    if( dim > 1 ) {
-      dir.coordinate[1] = sin( line.slope );
+    if( std::isnan( line.slope ) ) {
+      dir.coordinate[0] = 0.0;
+      if( dim > 1 ) {
+	dir.coordinate[1] = 1.0;
+      }
+    } else {
+      dir.coordinate[0] = cos( line.slope );
+      if( dim > 1 ) {
+	dir.coordinate[1] = sin( line.slope );
+      }
     }
     
     gaussian_distribution_t mean_distribution;
@@ -719,7 +726,24 @@ namespace ruler_point_process {
     mean_distribution.means = to_vector( m ).component;
     mean_distribution.covariance = to_dense_mat( post_cov );
     
-    return sample_from( mean_distribution );
+    nd_point_t s = sample_from( mean_distribution );
+
+    for( size_t i = 0; i < s.n; ++i ) {
+      if( std::isnan( s.coordinate[i] ) ) {
+	std::cout << "dir: " << dir << std::endl;
+	std::cout << "mean_dist: " << mean_distribution << std::endl;
+	std::cout << "x: " << x << std::endl;
+	std::cout << "prior_cov: " << prior_cov << std::endl;
+	std::cout << "prior_mean: " << prior_mean << std::endl;
+	std::cout << "cov: " << cov << std::endl;
+	std::cout << "m: " << m << std::endl;
+	std::cout << "post_cov: " << post_cov << std::endl;
+	std::cout << "s: " << s << std::endl;
+	std::cout << "!NaN in ressampled ruler direction mean!" << std::endl;
+      }
+    }
+
+    return s;
   }
 
 
