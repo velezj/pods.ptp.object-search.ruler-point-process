@@ -10,7 +10,7 @@ include(cmake/lcmtypes.cmake)
 lcmtypes_build()
 
 
-add_definitions( -std=c++0x -Wall -fdiagnostics-show-option )
+add_definitions( -std=c++0x -Wall -fdiagnostics-show-option -Wno-unused-local-typedefs)
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
 
 option ( USE_PEDANTIC "Turn on -pendantic mode in gcc. This will spit out *lots* of warnings from lcm :-(, but hopefully none from the rest of the code" OFF)
@@ -25,12 +25,14 @@ add_library( p2l-ruler-point-process SHARED
   src/mcmc.cpp
   src/plots.cpp
   src/ruler_point_process.cpp
+  src/gem_k_ruler_process.cpp
 )
 pods_install_headers(
   src/model.hpp
   src/mcmc.hpp
   src/ruler_point_process.hpp
   src/plots.hpp
+  src/gem_k_ruler_process.hpp
   DESTINATION
   ruler-point-process)
 pods_install_libraries( p2l-ruler-point-process )
