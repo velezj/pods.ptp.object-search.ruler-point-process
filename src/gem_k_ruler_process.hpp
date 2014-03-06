@@ -4,6 +4,7 @@
 
 #include <point-process-core/point_process.hpp>
 #include <probability-core/EM.hpp>
+#include <iosfwd>
 
 
 namespace ruler_point_process {
@@ -24,6 +25,8 @@ namespace ruler_point_process {
     double length_scale;
     double spread;
   };
+
+  std::ostream& operator<< (std::ostream& os, const ruler_t& r );
 
   //====================================================================
 
@@ -49,10 +52,12 @@ namespace ruler_point_process {
     // Create a new gem_k_ruler_process_t
     gem_k_ruler_process_t( const math_core::nd_aabox_t& window,
 			   gem_k_ruler_process_parmaeters_t& params,
-			   const std::vector<math_core::nd_point_t>& obs )
+			   const std::vector<math_core::nd_point_t>& obs,
+			   const std::vector<math_core::nd_aabox_t>& neg_obs )
       : _window( window ),
 	_params( params ),
-	_ndim( window.start.n )
+	_ndim( window.start.n ),
+	_negative_observations( neg_obs )
     {
       this->add_observations( obs );
     }
@@ -62,7 +67,8 @@ namespace ruler_point_process {
 	_params(g._params),
 	_ndim(g._ndim),
 	_observations(g._observations),
-	_rulers(g._rulers)
+	_rulers(g._rulers),
+	_negative_observations(g._negative_observations)
     {}
 
     boost::shared_ptr<gem_k_ruler_process_t>
@@ -108,10 +114,10 @@ namespace ruler_point_process {
 
     // Descripiton:
     // Add a negative observation
-    // CURRENTLY IGNORED
     virtual
     void add_negative_observation( const math_core::nd_aabox_t& region )
     {
+      _negative_observations.push_back( region );
     }
 
     std::vector<math_core::nd_point_t> sample() const
@@ -130,6 +136,23 @@ namespace ruler_point_process {
     plot( const std::string& title ) const
     { return ""; }
 
+  public: // gem_k_ruler_process_t specific API
+    
+    std::vector<ruler_t> rulers() const
+    { return _rulers; }
+
+    // Description:
+    // Return the lilelihod of the current rulers/mixture-weights
+    // given the data (observations and negative observations)
+    double likelihood() const;
+
+    // Description:
+    // for testing only!
+    void _set_rulers( const std::vector<ruler_t>& r )
+    { _rulers = r; }
+    void _set_ruler_mixture_weights( const std::vector<double>& w )
+    { _ruler_mixture_weights = w; }
+    
   protected:
 
     // Description:
@@ -157,6 +180,27 @@ namespace ruler_point_process {
 					   to_ruler(ruler_params, _ndim ));
     }
 
+    // Description:
+    // The likelihood function for a negative reagion given
+    // a ruler
+    double lik_negative_region_ruler
+    ( const math_core::nd_aabox_t& region,
+      const ruler_t& ruler ) const;
+    double lik_negative_region_ruler_flat
+    ( const math_core::nd_aabox_t& region,
+      const std::vector<double>& ruler_params ) const
+    {
+      return lik_negative_region_ruler( region,
+					to_ruler(ruler_params,_ndim));
+    }
+
+    // Description:
+    // A "mixed" data inpiut lilelihood function which essentially
+    // fowards to one above
+    double lik_mixed_ruler_flat
+    ( const math_core::nd_point_t& flat,
+      const std::vector<double>& ruler_params ) const;
+
 
     std::vector<ruler_t>
     create_initial_rulers() const;
@@ -167,8 +211,12 @@ namespace ruler_point_process {
     gem_k_ruler_process_parmaeters_t _params;
     std::vector<ruler_t> _rulers;
     size_t _ndim; // dimension of nd_point_t
+    std::vector<math_core::nd_aabox_t> _negative_observations;
+    std::vector<double> _ruler_mixture_weights;
     
   };
+
+  //====================================================================
 
   //====================================================================
 
