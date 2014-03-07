@@ -96,7 +96,7 @@ namespace ruler_point_process {
     res.insert(res.end(),
 	       r.dir.value.begin(),
 	       r.dir.value.end() );
-    res.push_back( r.length );
+    res.push_back( r.num_ticks );
     res.push_back( r.length_scale );
     res.push_back( r.spread );
     return res;
@@ -121,7 +121,10 @@ namespace ruler_point_process {
 			 v.begin() + ndim,
 			 v.begin() + 2 * ndim );
     r.dir = direction(vd);
-    r.length = v[2*ndim];
+    double nt = v[2*ndim];
+    if( nt < 0 )
+      nt = 0;
+    r.num_ticks = (size_t)nt;
     r.length_scale = v[2*ndim+1];
     r.spread = v[2*ndim+2];
     return r;
@@ -143,10 +146,9 @@ namespace ruler_point_process {
       r.dir = direction( dp - centroid(_window) );
       double wdist = distance( _window.start,
 			       _window.end );
-      r.length = sample_from( uniform_distribution( 0.1 * wdist,
-						    0.5 * wdist ) );
-      r.length_scale = sample_from( uniform_distribution( 0.1 * r.length,
-							  0.5 * r.length) );
+      r.num_ticks = (size_t)sample_from( uniform_distribution( 0.0, 10.0 ) );
+      r.length_scale = sample_from( uniform_distribution( 0.1 * wdist,
+							  0.5 * wdist) );
       r.spread = sample_from( uniform_distribution( 0.1 * r.length_scale,
 						    0.5 * r.length_scale ) );
       rulers.push_back( r );
@@ -156,8 +158,45 @@ namespace ruler_point_process {
 
   //====================================================================
 
-
   void gem_k_ruler_process_t::_run_GEM()
+  {
+    bool output = true;
+
+    std::vector< std::vector<ruler_t> > ruler_sets;
+    std::vector< std::vector<double> > mixture_sets;
+    std::vector< double > liks;
+    size_t best_idx = 0;
+    
+    // run a beunch of GEM runs
+    for( size_t i = 0; i < _params.num_gem_restarts; ++i ) {
+
+      // make sure to clear the rulers/mixtures
+      // so they are initialized
+      _rulers.clear();
+      _ruler_mixture_weights.clear();
+      _run_single_GEM();
+      ruler_sets.push_back( _rulers );
+      mixture_sets.push_back( _ruler_mixture_weights );
+      liks.push_back( likelihood() );
+
+      if( liks[best_idx] < liks[liks.size()-1] ) {
+	best_idx = i;
+      }
+
+      if( output ) {
+	std::cout << "GEM run[" << i << "] best=" << liks[best_idx] << " (" << liks[i] << ")" << std::endl;
+      }
+    }
+
+    // set rulers/mixture to best likelihood from GEM runs
+    _rulers = ruler_sets[best_idx];
+    _ruler_mixture_weights = mixture_sets[best_idx];
+  }
+
+  //====================================================================
+
+
+  void gem_k_ruler_process_t::_run_single_GEM()
   {
     if( _rulers.size() != _params.num_rulers ) {
       _rulers = create_initial_rulers();
@@ -182,7 +221,7 @@ namespace ruler_point_process {
 		temp.component.end() );
       l.push_back( 0 );
       l.push_back( 0 );
-      l.push_back( 1e-5 );
+      l.push_back( 0.1 );
 
       double wdist = distance( _window.start, _window.end );
       u.insert( u.end(),
@@ -192,7 +231,7 @@ namespace ruler_point_process {
       u.insert( u.end(),
 		temp.component.begin(),
 		temp.component.end() );
-      u.push_back( wdist );
+      u.push_back( 30 );
       u.push_back( wdist );
       u.push_back( wdist );
 
@@ -235,11 +274,11 @@ namespace ruler_point_process {
     // encode that negative observations must be taxed for every
     // model, fake out enough virtual negative observations that ther
     // is one per original per model to skew the weights
-    for( size_t j = 0; j < _rulers.size(); ++j ) {
+    //for( size_t j = 0; j < _rulers.size(); ++j ) {
       for( size_t i = 0; i < _negative_observations.size(); ++i ) {
 	data.push_back( encode_negative_region( _negative_observations[i] ) );
       }
-    }
+      //}
     
     // run GEM
     run_GEM_mixture_model_MLE_numerical
@@ -261,15 +300,16 @@ namespace ruler_point_process {
 
   //====================================================================
 
-  std::vector<nd_point_t> ticks_for_ruler( const ruler_t& r,
-					   const size_t& max_ticks )
+  std::vector<nd_point_t> 
+  gem_k_ruler_process_t::ticks_for_ruler( const ruler_t& r ) const
   {
     std::vector<nd_point_t> ticks;
     ticks.push_back( r.start );
-    while( distance( ticks[ticks.size()-1], r.start ) < r.length &&
-	   ticks.size() < max_ticks ) {
+    for( size_t i = 0 ; i < r.num_ticks; ++i ) {
       nd_point_t t = ticks[ ticks.size() - 1] + r.length_scale * r.dir; 
-      ticks.push_back( t );
+      if( is_inside( t, _window ) ) {
+	ticks.push_back( t );
+      }
     }
     return ticks;
   }
@@ -280,36 +320,17 @@ namespace ruler_point_process {
   ( const math_core::nd_point_t& x,
     const ruler_t& ruler ) const
   {
+    double bad_value = 1e-11;
+    if( ruler.length_scale < ( 2 * ruler.spread * 2 ) ) {
+      return bad_value;
+    }
+
     double p = 0;
-    double length = ruler.length;
-    if( length < 1e-3 ) {
-      length = 1e-3;
-    }
-    double length_scale = ruler.length_scale;
-    if( length_scale < 1e-3 ) {
-      length_scale = 1e-3;
-    }
-    double spread = ruler.spread;
-    double bar = 0.01 * length_scale;
-    // force spread to have a minimum and smoothly vary off of that
-    if( spread < bar) {
-      spread = bar + abs( spread - bar );
-    }
-    if( spread <= 0 ) {
-      spread = bar;
-    }
-    ruler_t ruler_norm( ruler );
-    ruler_norm.length = length;
-    ruler_norm.length_scale = length_scale;
-    ruler_norm.spread = spread;
     gaussian_distribution_t gauss;
     gauss.dimension = 1;
     gauss.means = { 0.0 };
-    gauss.covariance = diagonal_matrix( point( spread ) );
-    std::vector<nd_point_t> ticks = ticks_for_ruler(ruler_norm, 100);
-    if( ticks.size() >= 100 ) {
-      return 1e-10;
-    }
+    gauss.covariance = diagonal_matrix( point( ruler.spread ) );
+    std::vector<nd_point_t> ticks = ticks_for_ruler(ruler);
     // std::cout << "  lik: " << ticks.size() << "tick "
     // 	      << ruler_norm.start << ", " << ruler.dir << ", "
     // 	      << ruler_norm.length<< " (" << ruler.length << ") , " 
@@ -317,13 +338,17 @@ namespace ruler_point_process {
     // 	      << ruler_norm.spread << " (" << ruler.spread << ")" << std::endl;
     for( size_t i = 0; i < ticks.size(); ++i ) {
       double dist = distance(ticks[i],x);
-      p += pdf( point(dist), gauss );
+      double t = pdf( point(dist), gauss );
+      // choose the "best" tick for this data
+      if( p < t ) {
+	p = t;
+      }
     }
     if( std::isnan( p ) || std::isinf(p) ) {
-      return 1e-11;
+      return bad_value;
     }
-    if( p < 1e-10 ) {
-      return 1e-10;
+    if( p < 10 * bad_value ) {
+      return 10 * bad_value;
     }
     return p;
   }
@@ -360,35 +385,11 @@ namespace ruler_point_process {
     }
     //math_core::mpt::mp_float p = 0;
     math_core::mpt::mp_float p = 1;
-    double length = ruler.length;
-    // if( length < 1e-3 ) {
-    //   length = 1e-3;
-    // }
-    double length_scale = ruler.length_scale;
-    // if( length_scale < 1e-3 ) {
-    //   length_scale = 1e-3;
-    // }
-    double spread = ruler.spread;
-    // double bar = 0.01 * length_scale;
-    // // force spread to have a minimum and smoothly vary off of that
-    // if( spread < bar) {
-    //   spread = bar + abs( spread - bar );
-    // }
-    // if( spread <= 0 ) {
-    //   spread = bar;
-    // }
-    ruler_t ruler_norm( ruler );
-    ruler_norm.length = length;
-    ruler_norm.length_scale = length_scale;
-    ruler_norm.spread = spread;
     gaussian_distribution_t spread_distribution;
     spread_distribution.dimension = _ndim;
     spread_distribution.means = std::vector<double>( _ndim, 0.0 );
-    spread_distribution.covariance = diagonal_matrix( point( std::vector<double>(_ndim,spread) ) );
-    std::vector<nd_point_t> ticks = ticks_for_ruler(ruler_norm,100);
-    if( ticks.size() >= 100 ) {
-      return 1e-10;
-    }
+    spread_distribution.covariance = diagonal_matrix( point( std::vector<double>(_ndim,ruler.spread) ) );
+    std::vector<nd_point_t> ticks = ticks_for_ruler(ruler);
     for( size_t i = 0; i < ticks.size(); ++i ) {
       nd_point_t tick_point = ticks[i];
       nd_aabox_t reg = region;
@@ -410,12 +411,13 @@ namespace ruler_point_process {
 		  << "]" << std::endl;
       }
 
-      if( outside_mass < p ) {
-	p = outside_mass;
+      if( p < outside_mass ) {
+       	p = outside_mass;
       }
       //p += outside_mass;
     }
     //p /= ticks.size(); // compute the "expected" prob over all ticks
+    //p = 1.0 / p;
     if( p < 1e-8 ) {
       p = 1e-8;
     }
@@ -427,7 +429,7 @@ namespace ruler_point_process {
   double gem_k_ruler_process_t::likelihood() const
   {
 
-    bool output = true;
+    bool output = false;
     //neg_lik_output = true;
     if( output ){
       std::cout << "gem_k_ruler_process::likelihood" << std::endl;
@@ -475,13 +477,34 @@ namespace ruler_point_process {
   std::ostream& operator<< (std::ostream& os, const ruler_t& r )
   {
     os << "<-" << r.start << " " << r.dir 
-       << " l:" << r.length << " " << r.length_scale
-       << " #" << (r.length/r.length_scale)
+       << " #" << r.num_ticks << " " << r.length_scale
        << " ~" << r.spread << "->";
     return os;
   }
 
   //====================================================================
+  
+  std::vector<math_core::nd_point_t> 
+  gem_k_ruler_process_t::sample() const
+    {
+      std::vector<math_core::nd_point_t> s;
+      // for each ruler, see if it is "on" by using the
+      // mixture weight, and if so add the ticks
+      for( size_t i = 0; i < _rulers.size(); ++i ) {
+	if( probability_core::flip_coin( _ruler_mixture_weights[i] ) ) {
+	  std::vector<math_core::nd_point_t> ticks
+	    = ticks_for_ruler( _rulers[i] );
+	  for( math_core::nd_point_t tick : ticks ) {
+	    if( math_core::is_inside( tick, _window ) ) {
+	      s.push_back( tick );
+	    }
+	  }
+	}
+      }
+      return s;
+    }
+
+
   //====================================================================
   //====================================================================
   //====================================================================

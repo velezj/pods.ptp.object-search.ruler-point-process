@@ -4,6 +4,7 @@
 
 #include <point-process-core/point_process.hpp>
 #include <probability-core/EM.hpp>
+#include <probability-core/negative_binomial.hpp>
 #include <iosfwd>
 
 
@@ -21,7 +22,7 @@ namespace ruler_point_process {
   {
     math_core::nd_point_t start;
     math_core::nd_direction_t dir;
-    double length;
+    size_t num_ticks;
     double length_scale;
     double spread;
   };
@@ -36,6 +37,7 @@ namespace ruler_point_process {
   {
     GEM_parameters_t gem;
     size_t num_rulers;
+    size_t num_gem_restarts;
   };
 
   //====================================================================
@@ -120,11 +122,7 @@ namespace ruler_point_process {
       _negative_observations.push_back( region );
     }
 
-    std::vector<math_core::nd_point_t> sample() const
-    {
-      std::vector<math_core::nd_point_t> s;
-      return s;
-    }
+    std::vector<math_core::nd_point_t> sample() const;
 
     virtual
     void print_shallow_trace( std::ostream& out ) const
@@ -140,6 +138,9 @@ namespace ruler_point_process {
     
     std::vector<ruler_t> rulers() const
     { return _rulers; }
+
+    std::vector<double> mixture_weights() const
+    { return _ruler_mixture_weights; }
 
     // Description:
     // Return the lilelihod of the current rulers/mixture-weights
@@ -161,8 +162,12 @@ namespace ruler_point_process {
     static ruler_t to_ruler( const std::vector<double>& v,
 			     const size_t ndim );
 
+    std::vector<nd_point_t> 
+    ticks_for_ruler( const ruler_t& r ) const;
+
     // Description:
     // HE workhorse: run GEM to fit rulers to data
+    void _run_single_GEM();
     void _run_GEM();
 
     // Description:
