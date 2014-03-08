@@ -35,8 +35,8 @@ int main( int argc, char** argv )
   nd_aabox_t window = aabox( point( 0 ), point( 10 ) );
   
   gem_k_ruler_process_parmaeters_t params;
-  params.gem.max_optimize_iterations = 20;
-  params.gem.stop.max_iterations = 20;
+  params.gem.max_optimize_iterations = 50;
+  params.gem.stop.max_iterations = 50;
   params.num_rulers = 2;
   params.num_gem_restarts = 100;
   
