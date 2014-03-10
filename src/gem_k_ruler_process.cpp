@@ -136,27 +136,88 @@ namespace ruler_point_process {
   std::vector<ruler_t>
   gem_k_ruler_process_t::create_initial_rulers() const
   {
+    // create the lower/upper bounds
+    std::vector<std::vector<double> > alb;
+    std::vector<std::vector<double> > aub;
+    create_bounds( _params.num_rulers, alb, aub );
+
     std::vector<ruler_t> rulers;
     for( size_t i = 0; i < _params.num_rulers; ++i ) {
-      ruler_t r;
-      r.start = sample_from( uniform_distribution( _window.start,
-						   _window.end ) );
-      nd_point_t dp = sample_from( uniform_distribution( _window.start,
-							 _window.end ) );
-      r.dir = direction( dp - centroid(_window) );
-      double wdist = distance( _window.start,
-			       _window.end );
-      r.num_ticks = (size_t)sample_from( uniform_distribution( 0.0, 10.0 ) );
-      r.length_scale = sample_from( uniform_distribution( 0.1 * wdist,
-							  0.5 * wdist) );
-      r.spread = sample_from( uniform_distribution( 0.1 * r.length_scale,
-						    0.5 * r.length_scale ) );
-      rulers.push_back( r );
+      std::vector<double> lb = alb[i];
+      std::vector<double> ub = aub[i];
+      while( true ) {
+	ruler_t r;
+	r.start = sample_from( uniform_distribution( _window.start,
+						     _window.end ) );
+	nd_point_t dp = sample_from( uniform_distribution( _window.start,
+							   _window.end ) );
+	r.dir = direction( dp - centroid(_window) );
+	double wdist = distance( _window.start,
+				 _window.end );
+	r.num_ticks = (size_t)sample_from( uniform_distribution( 1.0, 10.0 ) );
+	r.length_scale = sample_from( uniform_distribution( 0.1 * wdist,
+							    0.5 * wdist) );
+	r.spread = sample_from( uniform_distribution( 0.1,
+						      0.5 ) );
+
+	// check that we are within bounds and not too
+	// much at hte edge
+	std::vector<double> x = to_flat_vector( r );
+	for( size_t i = 0; i < x.size(); ++i ) {
+	  double br = ub[i] - lb[i];
+	  if( x[i] <= lb[i] + 0.1 * br ||
+	      x[i] >= ub[i] - 0.1 * br ) {
+	    continue; // try again
+	  }
+	}
+
+	rulers.push_back( r );
+	break;
+      }
     }
     return rulers;
   }
 
   //====================================================================
+
+  void gem_k_ruler_process_t::create_bounds
+  ( const size_t& num_rulers,
+    std::vector<std::vector<double> >& lb,
+    std::vector<std::vector<double> >& ub ) const
+  {
+    // create lower/upper bounds on parameterts for rulers
+    for( size_t i = 0; i < num_rulers; ++i ) {
+      std::vector<double> l, u;
+      l.insert( l.end(),
+		_window.start.coordinate.begin(),
+		_window.start.coordinate.end() );
+      std::vector<double> temp = std::vector<double>(_window.start.n,-1.0);
+      l.insert( l.end(),
+		temp.begin(),
+		temp.end() );
+      l.push_back( 0 );
+      l.push_back( 0 );
+      l.push_back( 0.1 );
+
+      double wdist = distance( _window.start, _window.end );
+      u.insert( u.end(),
+		_window.end.coordinate.begin(),
+		_window.end.coordinate.end() );
+      temp = std::vector<double>(_window.start.n,1.0);
+      u.insert( u.end(),
+		temp.begin(),
+		temp.end() );
+      u.push_back( 30 );
+      u.push_back( wdist );
+      u.push_back( wdist );
+
+      lb.push_back( l );
+      ub.push_back( u );
+    }    
+  }
+
+  //====================================================================
+
 
   void gem_k_ruler_process_t::_run_GEM()
   {
@@ -208,36 +269,9 @@ namespace ruler_point_process {
       ruler_params.push_back( to_flat_vector( _rulers[i] ) );
     }
 
-    // create lower/upper bounds on parameterts for rulers
+    // get the bounds
     std::vector<std::vector<double> > lb, ub;
-    for( size_t i = 0; i < _rulers.size(); ++i ) {
-      std::vector<double> l, u;
-      l.insert( l.end(),
-		_window.start.coordinate.begin(),
-		_window.start.coordinate.end() );
-      nd_vector_t temp = -1.0 * ( _window.end - _window.start );
-      l.insert( l.end(),
-		temp.component.begin(),
-		temp.component.end() );
-      l.push_back( 0 );
-      l.push_back( 0 );
-      l.push_back( 0.1 );
-
-      double wdist = distance( _window.start, _window.end );
-      u.insert( u.end(),
-		_window.end.coordinate.begin(),
-		_window.end.coordinate.end() );
-      temp = ( _window.end - _window.start );
-      u.insert( u.end(),
-		temp.component.begin(),
-		temp.component.end() );
-      u.push_back( 30 );
-      u.push_back( wdist );
-      u.push_back( wdist );
-
-      lb.push_back( l );
-      ub.push_back( u );
-    }
+    create_bounds( _params.num_rulers, lb, ub );
 
     // the resulting parameter vector
     std::vector<std::vector<double> > mle_estimate;

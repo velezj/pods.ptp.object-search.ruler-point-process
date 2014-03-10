@@ -207,6 +207,13 @@ namespace ruler_point_process {
       const std::vector<double>& ruler_params ) const;
 
 
+    // Description:
+    // create the bounds for the flat parmeters
+    void create_bounds
+    ( const size_t& num_rulers,
+      std::vector<std::vector<double> >& lb,
+      std::vector<std::vector<double> >& ub ) const;
+
     std::vector<ruler_t>
     create_initial_rulers() const;
     
