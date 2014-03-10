@@ -378,7 +378,7 @@ namespace ruler_point_process {
   ( const math_core::nd_aabox_t& region,
     const ruler_t& ruler ) const
   {
-    double bad_value = 1e-9;
+    double bad_value = 1e-19;
     bool output = neg_lik_output;
     if( output ) {
       std::cout << "  neg-lik  reg: " << region 
@@ -420,10 +420,14 @@ namespace ruler_point_process {
     }
     //p /= ticks.size(); // compute the "expected" prob over all ticks
     //p = 1.0 / p;
-    if( p < 10 * bad_value ) {
-      p = 10 * bad_value;
+    if( p < bad_value ) {
+      p = bad_value;
     }
-    return p.convert_to<double>();
+    double ret = p.convert_to<double>();
+    if( std::isnan(ret) || std::isinf(ret)  ) {
+      return bad_value;
+    }
+    return ret;
   }
   
   //====================================================================
