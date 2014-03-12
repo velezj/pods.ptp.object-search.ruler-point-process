@@ -69,7 +69,7 @@ using namespace probability_core;
   // Decode negative region from flat point
   math_core::nd_aabox_t decode_negative_region( const math_core::nd_point_t& flat )
   {
-    assert( flat.coordinate[0] > 0 );
+    assert( flat.coordinate[0] < 0 );
     assert( (flat.n-1) % 2 == 0 );
     size_t n = (flat.n-1)/2;
     math_core::nd_point_t start, end;
@@ -103,9 +103,10 @@ namespace ruler_point_process {
     res.insert(res.end(), 
 	       r.start.coordinate.begin(),
 	       r.start.coordinate.end());
+    std::vector<double> c = r.manifold.coefficients();
     res.insert( res.end(),
-		r.manifold.coefficients().begin(),
-		r.manifold.coefficients().end() );
+		c.begin(),
+		c.end() );
     res.push_back( r.num_ticks );
     res.push_back( r.length_scale );
     res.push_back( r.spread );
@@ -128,6 +129,7 @@ namespace ruler_point_process {
     r.start = point( ndim, v.data() );
     std::vector<double> coeffs( v.begin() + ndim,
 				v.begin() + ndim + poly_dim + 1 );
+    r.manifold = polynomial_t(coeffs);
     double nt = v[ndim + poly_dim + 1];
     if( nt < 0 )
       nt = 0;
@@ -253,6 +255,9 @@ namespace ruler_point_process {
 
       if( output ) {
 	std::cout << "GEM run[" << i << "] best=" << liks[best_idx] << " (" << liks[i] << ")" << std::endl;
+	for( size_t i = 0; i < strip_sets[strip_sets.size()-1].size(); ++i ) {
+	  std::cout << "   strip[" << i << "]: " << strip_sets[strip_sets.size()-1][i] << std::endl;
+	}
       }
     }
 
@@ -346,8 +351,8 @@ namespace ruler_point_process {
     ticks.push_back( r.start );
     double start_x = r.start.coordinate[0];
     for( size_t i = 0 ; i < r.num_ticks; ++i ) {
-      double tx = r.manifold.find_point_arc_length_away( start_x,
-							 r.length_scale * (i+1) );
+      double tx = r.manifold.find_point_arc_length_away_chord_approx( start_x,
+								      r.length_scale * (i+1) );
       nd_point_t tp = point( tx,
 			     r.manifold.evaluate(tx));
       if( is_inside( tp, _window ) ) {
@@ -375,10 +380,10 @@ namespace ruler_point_process {
     gauss.covariance = diagonal_matrix( point( strip.spread ) );
     std::vector<nd_point_t> ticks = ticks_for_strip(strip);
     // std::cout << "  lik: " << ticks.size() << "tick "
-    // 	      << strip_norm.start << ", " << strip.dir << ", "
-    // 	      << strip_norm.length<< " (" << strip.length << ") , " 
-    // 	      << strip_norm.length_scale << " (" << strip.length_scale << "), "
-    // 	      << strip_norm.spread << " (" << strip.spread << ")" << std::endl;
+    // 	      << strip.start << ", " << strip.manifold << ", "
+    // 	      << strip.num_ticks << ", "
+    // 	      << strip.length_scale << ", "
+    // 	      << strip.spread << std::endl;
     for( size_t i = 0; i < ticks.size(); ++i ) {
       double dist = distance(ticks[i],x);
       double t = pdf( point(dist), gauss );

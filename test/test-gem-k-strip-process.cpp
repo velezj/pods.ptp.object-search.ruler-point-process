@@ -35,8 +35,8 @@ int main( int argc, char** argv )
 
     // some baseline rulerss and miture weights
     std::vector<strip_t> base_strips =
-      { { point( 0.1, 0.1 ), polynomial_t( { 0.0, 1.0 } ), 0, 1.0, 0.1 },
-	{ point( 5.3, 5.3 ), polynomial_t( { 0.0, 1.0 } ), 2, 0.7, 0.1 } };
+      { { point( 0.1, 0.1 ), polynomial_t( { 0.0, 1.0, 0.0 } ), 0, 1.0, 0.1 },
+	{ point( 5.3, 5.3 ), polynomial_t( { 0.0, 1.0, 0.0 } ), 2, 0.7, 0.1 } };
     std::vector<double> base_mixture_weights =
       { 0.5, 0.5 };
 
@@ -44,12 +44,12 @@ int main( int argc, char** argv )
     nd_aabox_t window = aabox( point( 0.0, 0.0 ), point( 10.0, 10.0 ) );
   
     gem_k_strip_process_parmaeters_t params;
-    params.gem.max_optimize_iterations = 20;
+    params.gem.max_optimize_iterations = 300;
     params.gem.stop.max_iterations = 500;
     params.gem.stop.relative_likelihood_tolerance = 1e-3;
     params.num_strips = 2;
     params.strip_poly_order = 2;
-    params.num_gem_restarts = 10;
+    params.num_gem_restarts = 100;
   
 
     gem_k_strip_process_t proc( window,
