@@ -26,6 +26,7 @@ add_library( p2l-ruler-point-process SHARED
   src/plots.cpp
   src/ruler_point_process.cpp
   src/gem_k_ruler_process.cpp
+  src/gem_k_strip_process.cpp
 )
 pods_install_headers(
   src/model.hpp
@@ -33,6 +34,7 @@ pods_install_headers(
   src/ruler_point_process.hpp
   src/plots.hpp
   src/gem_k_ruler_process.hpp
+  src/gem_k_strip_process.hpp
   DESTINATION
   ruler-point-process)
 pods_install_libraries( p2l-ruler-point-process )
