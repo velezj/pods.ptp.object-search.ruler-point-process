@@ -160,7 +160,7 @@ namespace ruler_point_process {
 						     _window.end ) );
 	std::vector<double> coeffs;
 	for( size_t i = 0; i < _params.strip_poly_order + 1; ++i ) {
-	  coeffs.push_back( sample_from( uniform_distribution( -90.0, 90.0 ) ) );
+	  coeffs.push_back( sample_from( uniform_distribution( -1.0, 1.0 ) ) );
 	}
 	r.manifold = math_core::polynomial_t( coeffs );
 	double wdist = distance( _window.start,
@@ -203,7 +203,7 @@ namespace ruler_point_process {
 		_window.start.coordinate.begin(),
 		_window.start.coordinate.end() );
       for( size_t i = 0; i < _params.strip_poly_order + 1; ++i ) {
-	l.push_back( -100.0 );
+	l.push_back( -2.0 );
       }
       l.push_back( 0 );
       l.push_back( 0 );
@@ -214,7 +214,7 @@ namespace ruler_point_process {
 		_window.end.coordinate.begin(),
 		_window.end.coordinate.end() );
       for( size_t i = 0; i < _params.strip_poly_order + 1; ++i ) {
-	u.push_back( 100.0 );
+	u.push_back( 2.0 );
       }
       u.push_back( 30 );
       u.push_back( wdist );
@@ -341,8 +341,10 @@ namespace ruler_point_process {
   //====================================================================
 
   std::vector<nd_point_t> 
-  gem_k_strip_process_t::ticks_for_strip( const strip_t& r ) const
+  gem_k_strip_process_t::ticks_for_strip( const strip_t& r,
+					  const bool& verbose) const
   {
+    bool output = verbose;
     assert( _ndim == 2 );
     if( _ndim != 2 ) {
       BOOST_THROW_EXCEPTION( std::logic_error( "cannot handle polynomials of dimension other than 2") );
@@ -351,12 +353,30 @@ namespace ruler_point_process {
     ticks.push_back( r.start );
     double start_x = r.start.coordinate[0];
     for( size_t i = 0 ; i < r.num_ticks; ++i ) {
-      double tx = r.manifold.find_point_arc_length_away_chord_approx( start_x,
+      double tx = r.manifold.find_point_arc_length_away_chord_approx( 0,
 								      r.length_scale * (i+1) );
-      nd_point_t tp = point( tx,
-			     r.manifold.evaluate(tx));
+      nd_point_t polyp = point( tx,
+				r.manifold.evaluate(tx));
+      nd_point_t tp = r.start + (polyp - zero_point(_ndim));
+
+      if( output ) {
+	std::cout << "   t[" << i << "] x=" << tx << " arc:"
+		  << r.manifold.arc_length( 0, tx )
+		  << " (of " << (r.length_scale * (i+1))
+		  << ") offset=" << polyp
+		  << "  point=" << tp;
+      }
+
       if( is_inside( tp, _window ) ) {
 	ticks.push_back( tp );
+      } else {
+	if( output ) {
+	  std::cout << "  CUT!";
+	}
+      }
+      
+      if( output ) {
+	std::cout << std::endl;
       }
     }
     return ticks;
@@ -445,13 +465,21 @@ namespace ruler_point_process {
       nd_aabox_t reg = region;
       reg.start = zero_point( _ndim ) + ( reg.start - tick_point );
       reg.end = zero_point( _ndim ) + ( reg.end - tick_point );
+
+      double c0 = cdf(reg.end,spread_distribution);
+      double c1 = cdf(reg.start,spread_distribution );
+
+      if( c0 < c1 ) {
+	double temp = c1;
+	c1 = c0;
+	c0 = temp;
+      }
       
       // compute probability mass inside region and then
       // take the mass outside of region
       math_core::mpt::mp_float outside_mass = 
 	( 1.0 - 
-	  (cdf(reg.end,spread_distribution)
-	   - cdf(reg.start,spread_distribution )));
+	  (c0 - c1));
 
       if( output ) {
 	std::cout << "    tick[" << i << "]: " << tick_point 
