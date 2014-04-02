@@ -68,14 +68,16 @@ namespace ruler_point_process {
     int length_slot = dir_slot + dim;
     int period_slot = length_slot + 1;
 
+    nd_point_t zero = zero_point( dim );
+
     // read in the variables and unpack from X
-    nd_point_t ruler_start = zero_point( dim );
-    nd_point_t ruler_direction_unnormed = zero_point( dim );
+    nd_point_t ruler_start = zero;
+    nd_point_t ruler_direction_unnormed = zero;
     for( int i = 0; i < dim; ++i ) {
       ruler_start.coordinate[i] = x[start_slot + i];
       ruler_direction_unnormed.coordinate[i] = x[dir_slot + i];
     }
-    nd_direction_t ruler_direction = direction( ruler_direction_unnormed - zero_point(dim) );
+    nd_direction_t ruler_direction = direction( ruler_direction_unnormed - zero );
     double length = x[ length_slot ];
     double period = x[ period_slot ];
 
@@ -106,7 +108,7 @@ namespace ruler_point_process {
     mp_float lik = 0;
     for( int tick = 0; tick < num_ticks; ++tick ) {
       nd_point_t tick_point = ruler_start + tick * period * ruler_direction;
-      nd_point_t p = zero_point(dim) + (params->point - tick_point);
+      nd_point_t p = zero + (params->point - tick_point);
       mp_float this_lik 
 	= pdf( p, params->spread_distribution );
       this_lik
@@ -134,8 +136,8 @@ namespace ruler_point_process {
 
 	// need to shift region to be from the tick's point of view
 	nd_aabox_t reg = params->negative_observations[i];
-	reg.start = zero_point( dim ) + ( reg.start - tick_point );
-	reg.end = zero_point( dim ) + ( reg.end - tick_point );
+	reg.start = zero + ( reg.start - tick_point );
+	reg.end = zero + ( reg.end - tick_point );
 
 	// compute probability mass inside region and then
 	// take the mass outside of region
@@ -167,6 +169,137 @@ namespace ruler_point_process {
     
     return lik.convert_to<double>();
   }
+
+
+  // Description:
+  // Monte carlco functio nfor the likelihood function
+  double likelihood_mc_double( double* x,
+			       size_t x_dim,
+			       void* user_params )
+  {
+    P2L_COMMON_push_function_context();
+    likelihood_params_t* params = (likelihood_params_t*)user_params;
+    int dim = params->point.n;
+    assert( 2 * dim + 2 == x_dim );
+    int start_slot = 0;
+    int dir_slot = start_slot + dim;
+    int length_slot = dir_slot + dim;
+    int period_slot = length_slot + 1;
+
+    nd_point_t zero = zero_point( dim );
+
+    // read in the variables and unpack from X
+    nd_point_t ruler_start = zero;
+    nd_point_t ruler_direction_unnormed = zero;
+    for( int i = 0; i < dim; ++i ) {
+      ruler_start.coordinate[i] = x[start_slot + i];
+      ruler_direction_unnormed.coordinate[i] = x[dir_slot + i];
+    }
+    nd_direction_t ruler_direction = direction( ruler_direction_unnormed - zero );
+    double length = x[ length_slot ];
+    double period = x[ period_slot ];
+
+    // compute the ticks from the start lengt hand period
+    int num_ticks = (int)floor( length / period );
+
+    // debug
+    if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+      std::cout << "        .. num ticks: " << num_ticks << " (per: " << period << " len:" << length << ")" << std::endl;
+    }
+
+    // Ok, we will now say that is there are too many ticks
+    // it's just a nearly impossible thing so low likelhjood
+    if( num_ticks > 50 ) {
+      return 0;
+    }
+
+    // If period is greater than length, zero likelihood
+    if( period > length ) {
+      return 0;
+    }
+
+    // debug
+    //std::cout << "  likelihood num ticks: " << num_ticks << std::endl;
+
+    // ok, now just multiple all of the distributions
+    // for the point in the params and sum over all ticks
+    double lik = 0;
+    for( int tick = 0; tick < num_ticks; ++tick ) {
+      nd_point_t tick_point = ruler_start + tick * period * ruler_direction;
+      nd_point_t p = zero + (params->point - tick_point);
+      double this_log_lik 
+	= log( pdf( p, params->spread_distribution ) );
+      this_log_lik
+	+= log( pdf( ruler_start, params->ruler_start_distribution ) );
+      this_log_lik
+	+= log( pdf( ruler_direction_unnormed, params->ruler_direction_distribution ) );
+      this_log_lik
+	+= log( pdf( length, params->ruler_length_distribution ) );
+      this_log_lik
+	+= log( pdf( period, params->period_distribution ) );
+
+      // debug
+      if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+	std::cout << "   tick: " << tick << " " << tick_point << " orig p: " << params->point << std::endl;
+	std::cout << "      p( p = " << p << " ; " << params->spread_distribution << " ): " << pdf( p, params->spread_distribution ) << std::endl;
+	std::cout << "      p( start = " << ruler_start << " ; " << params->ruler_start_distribution << " ): " << pdf( ruler_start, params->ruler_start_distribution ) << std::endl;
+	std::cout << "      p( dir = " << ruler_direction_unnormed << " ; " << params->ruler_direction_distribution << " ): " << pdf( ruler_direction_unnormed, params->ruler_direction_distribution ) << std::endl;
+	std::cout << "      p( len = " << length << " ; " << params->ruler_length_distribution << " ): " << pdf( length, params->ruler_length_distribution ) << std::endl;
+	std::cout << "      p( period = " << period << " ; " << params->period_distribution << " ): " << pdf( period, params->period_distribution ) << std::endl;
+      }
+      
+      // take care of the negative regions by computing the mass which
+      // lies inside and taking that out
+      double max_dist_thresh_sq = 9.0 * params->spread_distribution.covariance.data[0];
+      for( size_t i = 0; i < params->negative_observations.size(); ++i ) {
+
+	// need to shift region to be from the tick's point of view
+	nd_aabox_t reg = params->negative_observations[i];
+	reg.start = zero + ( reg.start - tick_point );
+	reg.end = zero + ( reg.end - tick_point );
+
+	double a = distance_sq( zero, reg.start );
+	double b = distance_sq( zero, reg.end );
+	bool same_side ( point_lexicographical_compare( reg.start, zero )
+			 == point_lexicographical_compare( reg.end, zero ) );
+	if( same_side && std::min( a, b ) > max_dist_thresh_sq ) {
+	  // both start/enmd are far away from zero, so assume
+	  // no CDF worth taking
+	  continue;
+	}
+
+	// compute probability mass inside region and then
+	// take the mass outside of region
+	double outside_mass = 
+	  ( 1.0 - 
+	    (cdf(reg.end,params->spread_distribution)
+	     - cdf(reg.start,params->spread_distribution )));
+	this_log_lik += log( outside_mass );
+
+	// debug
+	if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+	  std::cout << "      neg region: " << reg << " outside mass: " << outside_mass << std::endl;
+	}
+      }
+
+      // debug
+      if( DEBUG_VERBOSE && VERBOSE_LIKELIHOOD_MC ) {
+	std::cout << "      this lik: " << this_log_lik << std::endl;
+      }
+
+      lik += exp(this_log_lik);
+    }
+
+    // debug
+    //std::cout << "  -- total lik: " << lik << std::endl;
+
+    STAT_LVL( trace, "num-ticks", num_ticks );
+    STAT_LVL( trace, "num-negative-regions", (double)params->negative_observations.size() );
+    
+    //return lik.convert_to<double>();
+    return lik;
+  }
+
 
 
   // Description:
@@ -275,7 +408,7 @@ namespace ruler_point_process {
 				   ruler_start_distribution,
 				   ruler_direction_distribution,
 				   negative_observations };
-    gsl_monte_function F = { likelihood_mc, num_integrated_vars, &params };
+    gsl_monte_function F = { likelihood_mc_double, num_integrated_vars, &params };
     
     // the number of calls to the monte calro samples
     size_t num_samples = 10;
@@ -383,7 +516,7 @@ namespace ruler_point_process {
     x[ length_slot ] = mean_length;
     x[ period_slot ] = mean_period;
 
-    double approx_lik = likelihood_mc( x, num_slots, &params );
+    double approx_lik = likelihood_mc_double( x, num_slots, &params );
     
 
     // return the estiamte  form monte carlo integration
@@ -450,7 +583,7 @@ namespace ruler_point_process {
     x[ length_slot ] = mode_length;
     x[ period_slot ] = mode_period;
 
-    double approx_lik = likelihood_mc( x, num_slots, &params );
+    double approx_lik = likelihood_mc_double( x, num_slots, &params );
     
 
     // return the estiamte  form monte carlo integration
