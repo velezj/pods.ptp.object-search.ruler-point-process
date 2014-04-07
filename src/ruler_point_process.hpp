@@ -165,6 +165,30 @@ namespace ruler_point_process {
     std::string
     plot( const std::string& title ) const;
 
+    // Description:
+    // There is a closed form solution to the expected entropy
+    // for the ruler process based on the posterior
+    // expected entropy of the Pittman-Yor Process :-) yay!
+    virtual
+    double expected_entropy() const;
+
+    // Description:
+    // There is a closed form solution to the expected
+    // posterior entropy after some observations, yay!
+    double
+    expected_posterior_entropy
+    ( const std::vector<math_core::nd_point_t>& new_obs ) const;
+
+    // Description:
+    // There is a closed for solution to the difference between
+    // the expected entropy and expected posterior entropy,
+    // this returns it wihout having to calculate as much as
+    // otherwise needed! yay!
+    double
+    expected_posterior_entropy_difference
+    ( const std::vector<math_core::nd_point_t>& new_obs ) const;
+
+
   public: // STATE
 
     

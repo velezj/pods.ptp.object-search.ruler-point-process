@@ -6,6 +6,7 @@
 #include <probability-core/EM.hpp>
 #include <probability-core/negative_binomial.hpp>
 #include <iosfwd>
+#include <stdexcept>
 
 
 namespace ruler_point_process {
@@ -133,6 +134,11 @@ namespace ruler_point_process {
     std::string
     plot( const std::string& title ) const
     { return ""; }
+
+    virtual
+    double 
+    expected_entropy() const
+    { return 0.0; }
 
   public: // gem_k_ruler_process_t specific API
     

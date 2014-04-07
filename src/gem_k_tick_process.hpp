@@ -126,6 +126,11 @@ namespace ruler_point_process {
     plot( const std::string& title ) const
     { return ""; }
 
+    virtual
+    double 
+    expected_entropy() const
+    { return 0.0; }
+
   public: // gem_k_tick_process_t specific API
     
     std::vector<TickModelT> tick_models() const
