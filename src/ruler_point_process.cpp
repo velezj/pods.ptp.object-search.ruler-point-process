@@ -48,9 +48,10 @@ namespace ruler_point_process {
     for( size_t k = 0; k < new_obs.size(); ++k ) {
       sum += ( 1.0 / ( a + 1 + k ) );
     }
-    return ( ( ( a / (a + N) ) - 1.0 ) * _dg_1 )
-      + ( ( N / (a + N) ) * _dg_2 )
-      - sum;
+    //std::cout << "  rp:ent-diff  " << ( ( ( a / (a + N) ) - 1.0 ) * _dg_1 ) << "  " << ( ( N / (a + N) ) * _dg_2 ) << "  - " << sum << std::endl;
+    return fabs( ( ( ( a / (a + N) ) - 1.0 ) * _dg_1 )
+		 + ( ( N / (a + N) ) * _dg_2 )
+		 - sum );
   }
 
 }
