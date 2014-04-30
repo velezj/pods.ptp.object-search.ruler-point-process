@@ -628,7 +628,7 @@ namespace ruler_point_process {
     const gaussian_distribution_t& ruler_direction_distribution)
   {
     P2L_COMMON_push_function_context();
-    scoped_context_switch context( chain_context( context_t("ruler-process-likelihood-mean-approx") ) );
+    //scoped_context_switch context( chain_context( context_t("ruler-process-likelihood-mean-approx") ) );
     
     
     // this is a really ugly marginalization, so we will use 
@@ -672,7 +672,8 @@ namespace ruler_point_process {
     x[ period_slot ] = mean_period;
 
     double approx_lik = likelihood_mc_double_fast( x, num_slots, &params );
-    
+
+    delete[] x;
 
     // return the estiamte  form monte carlo integration
     return approx_lik;
@@ -740,6 +741,7 @@ namespace ruler_point_process {
 
     double approx_lik = likelihood_mc_double( x, num_slots, &params );
     
+    delete[] x;
 
     // return the estiamte  form monte carlo integration
     return approx_lik;
@@ -2347,7 +2349,7 @@ namespace ruler_point_process {
   void mcmc_single_step( ruler_point_process_state_t& state )
   {
     P2L_COMMON_push_function_context();
-    scoped_context_switch context( chain_context( context_t("ruler-process-mcmc") ) ); 
+    //scoped_context_switch context( chain_context( context_t("ruler-process-mcmc") ) ); 
     
     // For each observation, sample a corresponding mixture for it
     // from the known mixtures (with their parameters) as well as a
@@ -2703,11 +2705,11 @@ namespace ruler_point_process {
     // increment mcmc iteration
     state.iteration += 1;
 
-    // print out stats to a file
-    std::ofstream stat_fout( "stats.log" );
-    stat_fout << "+STATS+ ";
-    p2l::common::print_all_stats( stat_fout );
-    stat_fout << std::endl;
+    // // print out stats to a file
+    // std::ofstream stat_fout( "stats.log" );
+    // stat_fout << "+STATS+ ";
+    // p2l::common::print_all_stats( stat_fout );
+    // stat_fout << std::endl;
     
   }
 			 
