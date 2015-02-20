@@ -1302,6 +1302,7 @@ namespace ruler_point_process {
 			     const line_model_t& line,
 			     const gamma_distribution_t& period_prior,
 			     const gamma_distribution_t& length_prior,
+			     const ruler_length_algorithm& length_alg,
 			     double& period,
 			     double& length)
   {
@@ -1345,7 +1346,22 @@ namespace ruler_point_process {
     period = mean( diffs );
     
     // make the length be the distance btween first and last points
-    length = distance( sorted_points[0], sorted_points[sorted_points.size()-1] );
+    double data_length = distance( sorted_points[0], sorted_points[sorted_points.size()-1] );
+    
+    switch( length_alg ) {
+    case length_sampled_from_prior:
+      length = sample_from( length_prior );
+      if ( length < data_length ) {
+	length = data_length;
+      }
+      break;
+    case length_x2_of_points_seen:
+      length = 2.0 * data_length;
+      break;
+    case length_of_points_seen:
+    default:
+      length = data_length;
+    }
   }
 
   //========================================================================
@@ -1358,6 +1374,7 @@ namespace ruler_point_process {
   ( std::vector<nd_point_t>& points,
     const gamma_distribution_t& period_prior,
     const gamma_distribution_t& length_prior,
+    const ruler_length_algorithm& length_alg,
     line_model_t& line,
     double& period,
     double& length )
@@ -1372,6 +1389,7 @@ namespace ruler_point_process {
 			       line,
 			       period_prior,
 			       length_prior,
+			       length_alg,
 			       period, length );
     
   }
@@ -1921,6 +1939,7 @@ namespace ruler_point_process {
       calculate_best_fit_ruler_params( points, 
 				       state.mixture_period_gammas[ i ],
 				       state.mixture_ruler_length_gammas[ i ],
+				       state.length_alg,
 				       line,
 				       period, 
 				       length );
@@ -2087,6 +2106,7 @@ namespace ruler_point_process {
 	calculate_best_fit_ruler_params( points, 
 					 state.mixture_period_gammas[ i ],
 					 state.mixture_ruler_length_gammas[ i ],
+					 state.length_alg,
 					 line,
 					 period, 
 					 length );
@@ -2567,6 +2587,7 @@ namespace ruler_point_process {
 	calculate_best_fit_ruler_params( points, 
 					 state.mixture_period_gammas[ mixture_i ],
 					 state.mixture_ruler_length_gammas[ mixture_i ],
+					 state.length_alg,
 					 line,
 					 period, 
 					 length );

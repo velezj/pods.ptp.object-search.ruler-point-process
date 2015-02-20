@@ -29,7 +29,10 @@ namespace ruler_point_process {
       _state.trace_mcmc = false;
       _state.trace_samples = false;
       _state.iteration = 0;
-      this->add_observations( obs );
+      _state.length_alg = length_of_points_seen;
+      if( !obs.empty() ) {
+	this->add_observations( obs );
+      }
     }
 
 
@@ -50,6 +53,13 @@ namespace ruler_point_process {
     void set_liklihood_algorithm( const likelihood_algorithm& alg )
     {
       _state.likelihood_alg = alg;
+    }
+
+    // Description:
+    // Set the ruler length algorithm
+    void set_ruler_length_algorithm( const ruler_length_algorithm& alg )
+    {
+      _state.length_alg = alg;
     }
 
   public: // API

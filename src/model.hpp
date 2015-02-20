@@ -111,6 +111,16 @@ namespace ruler_point_process {
     mean_likelihood_approximation,
     mode_likelihood_approximation
   };
+
+
+  // Description:
+  // Possible ways of computing a length of a ruler from a set
+  // of points.
+  enum ruler_length_algorithm {
+    length_of_points_seen,
+    length_sampled_from_prior,
+    length_x2_of_points_seen
+  };
   
 
   // Description:
@@ -159,6 +169,9 @@ namespace ruler_point_process {
 
     // which likelihood do we want to use
     likelihood_algorithm likelihood_alg;
+
+    // which way do we compute a ruler's length from datapoints
+    ruler_length_algorithm length_alg;
 
   } ruler_point_process_state_t;
 
