@@ -22,8 +22,8 @@
 #include <gsl/gsl_monte_vegas.h>
 #include <gsl/gsl_fit.h>
 #include <boost/filesystem.hpp>
-#include <p2l-common/stat_counter.hpp>
-#include <p2l-common/context.hpp>
+#include <object-search.common/stat_counter.hpp>
+#include <object-search.common/context.hpp>
 
 #define DEBUG_VERBOSE false
 #define VERBOSE_LIKELIHOOD_MC false

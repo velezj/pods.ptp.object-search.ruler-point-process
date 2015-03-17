@@ -8,7 +8,7 @@
 #include <point-process-experiment-core/experiment_utils.hpp>
 #include <point-process-core/marked_grid.hpp>
 #include "register-common-models.cpp"
-#include <p2l-common/plots.hpp>
+#include <object-search.common/plots.hpp>
 #include <point-process-core/histogram.hpp>
 #include <sstream>
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6.0)
 
 # pull in the pods macros. See cmake/pods.cmake for documentation
-set(POD_NAME p2l-ruler-point-process)
+set(POD_NAME object-search.ruler-point-process)
 include(cmake/pods.cmake)
 
 
@@ -16,7 +16,7 @@ endif (USE_PEDANTIC)
 
 
 
-add_library( p2l-ruler-point-process SHARED
+add_library( object-search.ruler-point-process SHARED
   src/model.cpp
   src/mcmc.cpp
   src/plots.cpp
@@ -33,20 +33,20 @@ pods_install_headers(
   src/gem_k_strip_process.hpp
   DESTINATION
   ruler-point-process)
-pods_install_libraries( p2l-ruler-point-process )
-pods_use_pkg_config_packages(p2l-ruler-point-process 
-    p2l-common
-    p2l-probability-core 
+pods_install_libraries( object-search.ruler-point-process )
+pods_use_pkg_config_packages(object-search.ruler-point-process 
+    object-search.common
+    object-search.probability-core 
     gsl-1.16 
-    p2l-math-core 
+    object-search.math-core 
     boost-1.54.0
     boost-1.54.0-filesystem
     boost-1.54.0-exception
     plot-server-api )
-pods_install_pkg_config_file(p2l-ruler-point-process
+pods_install_pkg_config_file(object-search.ruler-point-process
     CFLAGS
-    LIBS -lp2l-ruler-point-process
-    REQUIRES p2l-common p2l-math-core p2l-probability-core p2l-point-process-core boost-1.54.0 boost-1.54.0-filesystem boost-1.54.0-exception plot-server-api
+    LIBS -lobject-search.ruler-point-process
+    REQUIRES object-search.common object-search.math-core object-search.probability-core object-search.point-process-core boost-1.54.0 boost-1.54.0-filesystem boost-1.54.0-exception plot-server-api
     VERSION 0.0.1)
 
 

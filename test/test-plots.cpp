@@ -6,7 +6,7 @@
 #include <ruler-point-process/ruler_point_process.hpp>
 #include <point-process-experiment-core/experiment_utils.hpp>
 #include "register-common-models.cpp"
-#include <p2l-common/plots.hpp>
+#include <object-search.common/plots.hpp>
 #include <point-process-core/histogram.hpp>
 #include <sstream>
 #include <ruler-point-process/plots.hpp>
