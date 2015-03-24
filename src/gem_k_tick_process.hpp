@@ -4,6 +4,7 @@
 
 #include <point-process-core/point_process.hpp>
 #include <probability-core/EM.hpp>
+#include "tick_models.hpp"
 #include <iosfwd>
 
 
@@ -14,17 +15,19 @@ namespace ruler_point_process {
   using namespace math_core;
 
   //====================================================================
+  //====================================================================
 
   // Description:
   // The parameters for a gem_k_tick_process
   template< class TickModelT >
-  struct gem_k_tick_process_parmaeters_t
+  struct gem_k_tick_process_parameters_t
   {
     GEM_parameters_t gem;
     size_t k;
     size_t num_gem_restarts;
     size_t point_dimension;
     double tick_spread;
+    double min_likelihood_epsilon;
     typename global_parameters_of<TickModelT>::type  tick_model_parameters;
     std::vector<std::vector<double> > tick_model_flat_lower_bounds;
     std::vector<std::vector<double> > tick_model_flat_upper_bounds;
@@ -46,12 +49,11 @@ namespace ruler_point_process {
     // Description:
     // Create a new process
     gem_k_tick_process_t( const math_core::nd_aabox_t& window,
-			  gem_k_tick_process_parmaeters_t& params,
+			  gem_k_tick_process_parameters_t<TickModelT>& params,
 			  const std::vector<math_core::nd_point_t>& obs,
 			  const std::vector<math_core::nd_aabox_t>& neg_obs )
       : _window( window ),
 	_params( params ),
-	_ndim( window.start.n ),
 	_negative_observations( neg_obs )
     {
       this->add_observations( obs );
@@ -194,7 +196,7 @@ namespace ruler_point_process {
     
     
     math_core::nd_aabox_t _window;
-    gem_k_strip_process_parmaeters_t _params;
+    gem_k_tick_process_parameters_t<TickModelT> _params;
     std::vector<math_core::nd_point_t> _observations;
     std::vector<math_core::nd_aabox_t> _negative_observations;
     std::vector<TickModelT> _tick_models;
@@ -205,41 +207,17 @@ namespace ruler_point_process {
   //====================================================================
 
   //====================================================================
+
+  // // Explicitly instantiate the known tick model templates
+  // template struct gem_k_tick_process_parameters_t<linear_manifold_3_ticks>;
+  // template class gem_k_tick_process_t<linear_manifold_3_ticks>;
   
-  // Description:
-  // API for tick_model classes
-
-  template<class TickModelT>
-  struct global_parameters_of {
-    typedef void type;
-  };
-  
-  
-  template<class TickModelT>
-  void
-  flat_to_model( const std::vector<double>& flat,
-		 TickModelT& model,
-		 const typename global_parameters_of<TickModelT>::type& params);
-
-  template<class TickModelT>
-  std::vector<double>
-  model_to_flat( const TickModelT& model,
-		 const typename global_parameters_of<TickModelT>::type& params);
-
-  template<class TickModelT>
-  std::vector<math_core::nd_point_t>
-  ticks_for_model( const TickModelT& model,
-		   const typename global_parameters_of<TickModelT>::type& params );
-
-  // Also needed:
-  // probability_core::sample_from( uniform_distribution_t<TickModelT> )
-
-
-
-  //====================================================================
 
 
 }
+
+// include the template specializations and code
+#include "gem_k_tick_process.cpp"
 
 #endif
 

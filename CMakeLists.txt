@@ -20,6 +20,7 @@ add_library( object-search.ruler-point-process SHARED
   src/model.cpp
   src/mcmc.cpp
   src/plots.cpp
+  src/flat_parameters.cpp
   src/ruler_point_process.cpp
   src/gem_k_ruler_process.cpp
   src/gem_k_strip_process.cpp
@@ -29,8 +30,12 @@ pods_install_headers(
   src/mcmc.hpp
   src/ruler_point_process.hpp
   src/plots.hpp
+  src/flat_parameters.hpp
   src/gem_k_ruler_process.hpp
   src/gem_k_strip_process.hpp
+  src/tick_models.hpp
+  src/gem_k_tick_process.hpp
+  src/gem_k_tick_process.cpp
   DESTINATION
   ruler-point-process)
 pods_install_libraries( object-search.ruler-point-process )

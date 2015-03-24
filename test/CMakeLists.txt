@@ -84,3 +84,8 @@ pods_install_executables( object-search.ruler-point-process-test-plots )
 # pods_install_executables( object-search.ruler-point-process-test-gem-k-strip-process )
 
   
+add_executable( object-search.ruler-point-process-test-gem-k-tick-process
+  test-gem-k-tick-process.cpp )
+pods_use_pkg_config_packages( object-search.ruler-point-process-test-gem-k-tick-process
+  object-search.ruler-point-process )
+pods_install_executables( object-search.ruler-point-process-test-gem-k-tick-process )
